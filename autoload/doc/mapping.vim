@@ -45,7 +45,7 @@ fu! doc#mapping#main() abort "{{{2
         exe cmd
         " Don't make the cursor move if the previous command failed.
         " Don't try to catch an error; `:Man not_a_cmd` doesn't raise a real error.
-        if index(['info', 'man'], &ft) == -1 && expand('%:t') isnot# 'ctlseqs.txt.gz'
+        if index(['help', 'info', 'man'], &ft) == -1 && expand('%:t') isnot# 'ctlseqs.txt.gz'
             return
         endif
         try
