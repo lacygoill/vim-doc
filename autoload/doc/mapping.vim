@@ -19,7 +19,7 @@ fu! doc#mapping#main() abort "{{{2
         let l:Rep = {m -> m[0] is# 'info' ? 'Info' : 'Man'}
         sp +1 /usr/share/doc/xterm/ctlseqs.txt.gz
         if expand('%:t') is# 'ctlseqs.txt.gz'
-            nno <buffer><nowait><silent> q :<c-u>q<cr>
+            nno <buffer><expr><nowait><silent> q reg_recording() isnot# '' ? 'q' : ':<c-u>q!<cr>'
         endif
         let cmd = substitute(cmd, '^', '/', '')
     endif
