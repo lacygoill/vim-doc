@@ -61,7 +61,7 @@ fu! doc#mapping#main() abort "{{{2
             for topic in topics
                 exe '/' . topic
             endfor
-            if tolower(topic) is# topic
+            if toupper(topic) isnot# topic
                 let @/ = topic
             endif
         catch /^Vim\%((\a\+)\)\=:E\%(486\)/
