@@ -51,8 +51,11 @@ fu! doc#mapping#main() abort "{{{2
         try
             let topics = map(split(topics, '\\\@<!/'), {i,v -> matchstr(v, '.*\s\@<!')})
             " TODO: Should we remove this line?{{{
+            "
             " What if  we need to  search for  an uppercase word,  which appears
             " somewhere in the middle of a line (!= section header)?
+            " And what  if we search for sth which  doesn't contain alphabetical
+            " characters. For example, `$ man tmux /#(`.
             "
             " If you  remove it, use  the anchor `^`  to prefix all  the section
             " headers used in a search of a `$ man` command.
