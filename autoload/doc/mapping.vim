@@ -49,7 +49,7 @@ fu! doc#mapping#main() abort "{{{2
             return
         endif
         try
-            let topics = map(split(topics, '\\\@<!/'), {i,v -> matchstr(v, '.*\s\@<!')})
+            let topics = map(split(topics, '\\\@<!/'), {_,v -> matchstr(v, '.*\s\@<!')})
             " TODO: Should we remove this line?{{{
             "
             " What if  we need to  search for  an uppercase word,  which appears
@@ -60,7 +60,7 @@ fu! doc#mapping#main() abort "{{{2
             " If you  remove it, use  the anchor `^`  to prefix all  the section
             " headers used in a search of a `$ man` command.
             "}}}
-            call map(topics, {i,v -> toupper(v) is# v ? '^' . v : v})
+            call map(topics, {_,v -> toupper(v) is# v ? '^' . v : v})
             for topic in topics
                 exe '/' . topic
             endfor
