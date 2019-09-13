@@ -18,9 +18,11 @@ com! -bar -nargs=* Doc call doc#cmd#main(<f-args>)
 "
 "     see `blah blah`
 "
-" should require a minimum amout of effort.
+" should require a minimum amount of effort.
 " `blah blah` should be processed by a single smart mapping, capable of reacting
 " differently depending on the text.
 "}}}
-nno <silent><unique> -d :<c-u>call doc#mapping#main()<cr>
+" we use an opfunc just to make the mapping dot repeatable
+nno <silent><unique> -d :<c-u>set opfunc=doc#mapping#main<cr>g@l
+xno <silent><unique> -d :<c-u>call doc#mapping#main('vis')<cr>
 
