@@ -1,192 +1,213 @@
+if exists('g:autoloaded_doc#mapping')
+    finish
+endif
+let g:autoloaded_doc#mapping = 1
+
 " Init {{{1
 
-" Could we get it programmatically?{{{
-"
-" You could use `findfile()`:
-"
-"     :echo findfile('ctlseqs.txt.gz', '/usr/share/**')
-"
-" Or `find(1)`:
-"
-"     :echo system('find /usr -path "*/xterm/*ctlseqs.txt.gz"')[:-2]
-"
-" But those commands take some time.
-" Not sure it's worth it for the moment.
-"}}}
-let s:PATH_TO_CTLSEQS = '/usr/share/doc/xterm/ctlseqs.txt.gz'
+let s:DEVDOCS_ENABLED_FILETYPES = ['bash', 'c', 'html', 'css', 'lua', 'python']
 
 " Interface {{{1
 fu! doc#mapping#main(type) abort "{{{2
-    " TODO: the function is too long, and too complex for a main function
-    let reg_save = [getreg('"'), getregtype('"')]
-    try
-        " TODO: Why do we call `s:describe_shell_command()` here, and later a second time?{{{
-        "
-        " Is the second call redundant?
-        "
-        " ---
-        "
-        " Why do we care about the comment leader only when we extract a command
-        " from a codeblock? Why don't we also care for a codespan?
-        "}}}
-        if s:is_uncommented_shell_command() | call s:describe_shell_command() | return | endif
-        let cmd = call('s:get_cmd', [a:type])
-        if cmd is# '' | return | endif
-        if cmd =~# '^\%(info\|man\)\s'
-            let l:Rep = {m -> m[0] is# 'info' ? 'Info' : 'Man'}
-            let cmd = substitute(cmd, '^\(info\|man\)', l:Rep, '')
-        elseif cmd =~# '^\%(CSI\|OSC\|DCS\)\s'
-            if s:ctlseqs_file_is_already_displayed()
-                call s:focus_ctlseqs_window()
-            else
-                exe 'noswapfile sp +1 '..s:PATH_TO_CTLSEQS
-            endif
-            if expand('%:t') is# 'ctlseqs.txt.gz'
-                nno <buffer><expr><nowait><silent> q reg_recording() isnot# '' ? 'q' : ':<c-u>q!<cr>'
-            endif
-            let cmd = substitute(cmd, '^', '/', '')
-        elseif cmd !~# '^:h\s'
-            " Test the code against these commands:{{{
-            "
-            "     $ ls -larth
-            " foo `$ ls -larth` bar
-            "}}}
-            call s:describe_shell_command(cmd) | return
-        endif
-        if cmd =~# '/'
-            " A help topic can start with a slash.{{{
-            "
-            " Example:
-            " blah blah `:h /\@>` blah blah
-            "
-            " Here, `/\@>` would  be wrongly interpreted as a  pattern to search
-            " by the rest of our code (instead of a simple help tag).
-            "}}}
-            if cmd =~# '^:h\s\+/'
-                let [cmd, topic] = [matchstr(cmd, '.\{-}\ze\s*/.\{-}%\(/\|$\)'), matchstr(cmd, '/.*')]
-            else
-                let [cmd, topic] = [matchstr(cmd, '.\{-}\ze\s*/'), matchstr(cmd, '/.*')]
-            endif
-            exe cmd
-            " `exe ... cmd` could fail without raising a real Vim error, e.g. `:Man not_a_cmd`.
-            " In such a case, we make sure the cursor is not moved.
-            if index(['help', 'info', 'man'], &ft) == -1 && expand('%:t') isnot# 'ctlseqs.txt.gz' | return | endif
-            exe topic
-            " Populate the search register with  the topic if it doesn't contain
-            " any offset, or with the last offset otherwise.
-            if topic =~# '/;/'
-                let @/ = matchstr(topic, '.*/;/\zs.*')
-            else
-                " remove leading `/`
-                let @/ = topic[1:]
-            endif
-        else
-            exe cmd
-        endif
-    catch | return lg#catch_error()
-    finally | call setreg('"', reg_save[0], reg_save[1])
-    endtry
+    " Make tests on:{{{
+    "
+    " foo `man bash` bar
+    " foo `man bash /keyword/;/running` bar
+    " foo `info groff` bar
+    " foo `info groff /difficult/;/confines` bar
+    " foo `:h :com` bar
+    " foo `:h :com /below/;/list` bar
+    " foo `:h /\@=` bar
+    " foo `:h /\@= /tricky/;/position` bar
+    " foo `CSI ? Pm h/;/Ps = 2 0 0 4` bar
+    " foo `$ ls -larth` bar
+    "
+    "     man bash
+    "     man bash /keyword/;/running
+    "     info groff
+    "     info groff /difficult/;/confines
+    "     :h :com
+    "     :h :com /below/;/list
+    "     :h /\@=
+    "     :h /\@= /tricky/;/position
+    "     CSI ? Pm h/;/Ps = 2 0 0 4
+    "     $ ls -larth
+    "}}}
+    let cmd = call('s:get_cmd', [a:type])
+    if cmd is# ''
+        if ! s:on_commented_line() | call s:document_word_under_cursor()
+        else | echo 'no known command here (man, :h, CSI, $ ls, ...)' | endif
+        return
+    endif
+    if s:visual_selection_contains_shell_code(a:type)
+        exe 'Ch '..cmd | return
+    endif
+    let cmd = s:vimify_cmd(cmd)
+    if cmd =~# '^Man\s' && exists(':Man') != 2 | echo ':Man command is not installed' | return | endif
+    if cmd !~# '/' | exe cmd | return | endif
+    " The regexes are a little complex because a help topic can start with a slash.{{{
+    "
+    " Example: `:h /\@>`.
+    "
+    " In that case, when parsing the command, we must not *stop* at this slash.
+    " Same thing when parsing the offset: we must not *start* at this slash.
+    "}}}
+    let [cmd, topic] = [matchstr(cmd, '.\{-}\ze\%(\%(:h\s\+\)\@<!/\|$\)'),
+                      \ matchstr(cmd, '\%(:h\s\+\)\@<!/.*')]
+    exe cmd
+    " `exe ... cmd` could fail without raising a real Vim error, e.g. `:Man not_a_cmd`.
+    " In such a case, we don't want the cursor to move.
+    if s:not_in_documentation_buffer() | return | endif
+    exe topic
+    call s:set_search_register(topic)
 endfu
 " }}}1
 " Core {{{1
 fu! s:get_cmd(type) abort "{{{2
     if a:type is# 'vis'
-        norm! gvy
-        return @"
+        let cb_save  = &cb
+        let sel_save = &sel
+        let reg_save = [getreg('"'), getregtype('"')]
+        try
+            set cb-=unnamed cb-=unnamedplus
+            set sel=inclusive
+            sil norm! gvy
+            let cmd = @"
+        catch | return lg#catch_error()
+        finally | call setreg('"', reg_save[0], reg_save[1])
+        endtry
     else
         let line = getline('.')
         let cmd_pat =
-            \   '\m\C\s*\%('
-            \ ..    '\zs\%(info\|man\)'
-            \ ..    '\|'
+            \   '\m\C\s*\zs\%('
+            \ ..    ':h\|info\|man\|CSI\|OSC\|DCS\|'
             "\ random shell command for which we want a description via `ch`
-            \ ..    '$\s*\zs.*'
-            \ ..    '\|'
-            \ ..    '\zs\%(:h\|CSI\|OSC\|DCS\)'
+            \ ..    '\$'
             \ ..'\)\s.*'
         let codespan = s:get_codespan(line, cmd_pat)
         let codeblock = s:get_codeblock(line, cmd_pat)
-        if codeblock is# '' && codespan is# ''
-            echo 'no documentation command to run' | return ''
+        if codeblock is# '' && codespan is# '' | let cmd = ''
         " if the  function finds a codespan  *and* a codeblock, we  want to give
         " the priority to the latter
-        elseif codeblock isnot ''
-            return codeblock
-        elseif codespan isnot ''
-            return codespan
+        elseif codeblock isnot '' | let cmd = codeblock
+        elseif codespan isnot ''  | let cmd = codespan
         endif
-    return ''
+    endif
+    return cmd
 endfu
 
 fu! s:get_codespan(line, cmd_pat) abort "{{{2
-   let col = col('.')
-   let pat =
-       \   '\%(^\%('
-       "\ there can be a codespan before
-       \ ..        '`[^`]*`'
-       \ ..        '\|'
-       "\ there can be a character outside a codespan before
-       \ ..        '[^`]'
-       \ ..     '\)'
-       "\ there can be several of them
-       \ ..     '*'
-       \ .. '\)\@<='
-       \ .. '\%('
-       "\ a codespan with the cursor in the middle
-       \ ..     '`[^`]*\%'..col..'c[^`]*`'
-       \ ..     '\|'
-       "\ a codespan with the cursor on the opening backtick
-       \ ..     '\%'..col..'c`[^`]*`'
-       \ .. '\)'
+    let cml = s:get_cml()
+    let col = col('.')
+    let pat =
+        "\ we are on a commented line
+        \    '\%(^\s*\V'..escape(cml, '\')..'\m.*\)\@<='
+        \ .. '\%(^\%('
+        "\ there can be a codespan before
+        \ ..         '`[^`]*`'
+        \ ..         '\|'
+        "\ there can be a character outside a codespan before
+        \ ..         '[^`]'
+        \ ..      '\)'
+        "\ there can be several of them
+        \ ..     '*'
+        \ ..  '\)\@<='
+        \ .. '\%('
+        "\ a codespan with the cursor in the middle
+        \ ..     '`[^`]*\%'..col..'c[^`]*`'
+        \ ..     '\|'
+        "\ a codespan with the cursor on the opening backtick
+        \ ..     '\%'..col..'c`[^`]*`'
+        \ ..  '\)'
 
-   " extract codespan from the line
-   let codespan = matchstr(a:line, pat)
-   " remove surrounding backticks
-   let codespan = substitute(codespan, '^`\|`$', '', 'g')
-   " extract command from the text
-   " This serves 2 purposes.{{{
-   "
-   " Remove a possible leading `$` (shell prompt).
-   "
-   " Make  sure the text does  contain a command  for which our plugin  can find
-   " some documentation.
-   "}}}
-   let codespan = matchstr(codespan, '^'..a:cmd_pat)
-   return codespan
+    " extract codespan from the line
+    let codespan = matchstr(a:line, pat)
+    " remove surrounding backticks
+    let codespan = substitute(codespan, '^`\|`$', '', 'g')
+    " extract command from the text
+    " This serves 2 purposes.{{{
+    "
+    " Remove a possible leading `$` (shell prompt).
+    "
+    " Make  sure the text does  contain a command  for which our plugin  can find
+    " some documentation.
+    "}}}
+    let codespan = matchstr(codespan, '^'..a:cmd_pat)
+    return codespan
 endfu
 
 fu! s:get_codeblock(line, cmd_pat) abort "{{{2
-   if &ft is# 'markdown'
-       let cml = ''
-   else
-       let cml = matchstr(get(split(&l:cms, '%s', 1), 0, ''), '\S*')
-   endif
-   let n = &ft is# 'markdown' ? 4 : 5
-   let pat = '^\s*\V'..escape(cml, '\')..'\m \{'..n..'}'..a:cmd_pat
-   let codeblock = matchstr(a:line, pat)
-   return codeblock
+    let cml = s:get_cml()
+    let n = &ft is# 'markdown' ? 4 : 5
+    let pat = '^\s*\V'..escape(cml, '\')..'\m \{'..n..'}'..a:cmd_pat
+    let codeblock = matchstr(a:line, pat)
+    return codeblock
+endfu
+
+fu! s:document_word_under_cursor() abort "{{{2
+    if index(s:DEVDOCS_ENABLED_FILETYPES, &ft) == -1
+        echo printf('the "%s" filetype is not enabled on https://devdocs.io/', &ft)
+        return
+    endif
+    let word = expand('<cword>')
+    exe 'Doc '..word..' '..&ft
+endfu
+
+fu! s:vimify_cmd(cmd) abort "{{{2
+    let cmd = a:cmd
+    if cmd =~# '^\%(info\|man\)\s'
+        let l:Rep = {m -> m[0] is# 'info' ? 'Info' : 'Man'}
+        let cmd = substitute(cmd, '^\%(info\|man\)', l:Rep, '')
+    elseif cmd =~# '^\%(CSI\|OSC\|DCS\)\s'
+        let cmd = substitute(cmd, '^', 'CtlSeqs /', '')
+    elseif cmd =~# '^\$\s'
+        let cmd = substitute(cmd, '^\$', 'Ch', '')
+    elseif cmd =~# '^:h\s'
+        " nothing to do; `:h` is already a Vim command
+    else
+        " When can this happen?{{{
+        "
+        " When  you visually  select some  text  which doesn't  match any  known
+        " documentation command.
+        "
+        " Or when you refactor `s:get_cmd()` to support a new kind of documentation
+        " command, but you we forget to refactor this function to "vimify" it.
+        "}}}
+        echo 'not a documentation command' | let cmd = ''
+    endif
+    return cmd
+endfu
+
+fu! s:set_search_register(topic) abort "{{{2
+    " Populate the search register with  the topic if it doesn't contain
+    " any offset, or with the last offset otherwise.
+    if a:topic =~# '/;/' | let @/ = matchstr(a:topic, '.*/;/\zs.*')
+    " remove leading `/`
+    else | let @/ = a:topic[1:] | endif
 endfu
 "}}}1
 " Utilities {{{1
-fu! s:is_uncommented_shell_command() abort "{{{2
-    return &ft is# 'sh' && getline('.') !~# '^\s*#'
+fu! s:on_commented_line() abort "{{{2
+    let cml = s:get_cml()
+    if cml is# '' | return 0 | endif
+    return getline('.') =~# '^\s*\V'..escape(cml, '\')
 endfu
 
-fu! s:describe_shell_command(...) abort "{{{2
-    let cmd = a:0 ? a:1 : getline('.')
-    sil let @o = system('ch '..cmd..' 2>/dev/null')
-    echo @o
+fu! s:get_cml() abort "{{{2
+    if &ft is# 'markdown'
+        let cml = ''
+    else
+        let cml = matchstr(get(split(&l:cms, '%s', 1), 0, ''), '\S*')
+    endif
+    return cml
 endfu
 
-fu! s:ctlseqs_file_is_already_displayed() abort "{{{2
-    return match(map(tabpagebuflist(), {_,v -> bufname(v)}), 'ctlseqs\.txt\.gz$') != -1
+fu! s:visual_selection_contains_shell_code(type) abort "{{{2
+    return a:type is# 'vis' && &ft is# 'sh' && ! s:on_commented_line()
 endfu
 
-fu! s:focus_ctlseqs_window() abort "{{{2
-    let bufnr = bufnr('ctlseqs\.txt.\gz$')
-    let winids = win_findbuf(bufnr)
-    let tabpagenr = tabpagenr()
-    call filter(winids, {_,v -> getwininfo(v)[0].tabnr == tabpagenr})
-    call win_gotoid(winids[0])
+fu! s:not_in_documentation_buffer() abort "{{{2
+    return index(['help', 'info', 'man'], &ft) == -1
+        \ && expand('%:t') isnot# 'ctlseqs.txt.gz'
 endfu
 

@@ -3,26 +3,19 @@ if exists('g:loaded_doc')
 endif
 let g:loaded_doc = 1
 
-com! -bar -nargs=* Doc call doc#cmd#main(<f-args>)
+com! -bar -nargs=? Ch call doc#cmd#ch(<q-args>)
+com! -bar -nargs=0 CtlSeqs call doc#cmd#ctlseqs()
+com! -bar -nargs=? Info call doc#cmd#info(<q-args>)
+com! -bar -nargs=* Doc call doc#cmd#doc(<f-args>)
 
-" TODO: Develop this mapping.{{{
-"
-" It could be used  to get more interactivity in our markdown  notes, and in our
-" comments.
-"
-" Think about it: we use some markup everywhere.
-" That gives Vim the ability to get some understanding of what we write.
-" Leverage this understanding; make Vim interact with what it recognizes.
-"
-" For example, all those:
-"
-"     see `blah blah`
-"
-" should require a minimum amount of effort.
-" `blah blah` should be processed by a single smart mapping, capable of reacting
-" differently depending on the text.
-"}}}
 " we use an opfunc just to make the mapping dot repeatable
 nno <silent><unique> -d :<c-u>set opfunc=doc#mapping#main<cr>g@l
+" How is the visual mapping useful?{{{
+"
+" The normal mode  mapping works only if the documentation  command is contained
+" in a codespan or codeblock; the visual mapping lifts that restriction.
+"
+" It's also useful to get the description of a shell command via the script `ch`.
+"}}}
 xno <silent><unique> -d :<c-u>call doc#mapping#main('vis')<cr>
 
