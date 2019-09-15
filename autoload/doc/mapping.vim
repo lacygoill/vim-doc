@@ -173,7 +173,7 @@ fu! s:vimify_cmd(cmd) abort "{{{2
         " Or when you refactor `s:get_cmd()` to support a new kind of documentation
         " command, but you we forget to refactor this function to "vimify" it.
         "}}}
-        echo 'not a documentation command' | let cmd = ''
+        echo 'not a documentation command (man, :h, CSI, $ ls, ...)' | let cmd = ''
     endif
     return cmd
 endfu
