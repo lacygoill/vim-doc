@@ -58,7 +58,11 @@ fu! doc#mapping#main(type) abort "{{{2
     " `exe ... cmd` could fail without raising a real Vim error, e.g. `:Man not_a_cmd`.
     " In such a case, we don't want the cursor to move.
     if s:not_in_documentation_buffer() | return | endif
-    exe topic
+    try
+        exe topic
+    catch /^Vim\%((\a\+)\)\=:E486:/
+        echohl ErrorMsg | echom v:exception | echohl NONE
+    endtry
     call s:set_search_register(topic)
 endfu
 " }}}1
