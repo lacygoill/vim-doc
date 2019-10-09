@@ -62,7 +62,7 @@ fu! doc#cmd#doc(...) abort "{{{2
     " https://devdocs.io/help#search
     let url = 'http://devdocs.io/?q='
 
-    let args = a:0 ==# 1
+    let args = a:0 == 1
            \ ?     url..&ft..' '..a:1
            \ :     url..a:2..' '..a:1
 
