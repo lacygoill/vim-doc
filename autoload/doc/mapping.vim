@@ -134,7 +134,7 @@ fu s:get_codespan(line, cmd_pat) abort "{{{2
     " extract codespan from the line
     let codespan = matchstr(a:line, pat)
     " remove surrounding backticks
-    let codespan = substitute(codespan, '^`\|`$', '', 'g')
+    let codespan = trim(codespan, '`')
     " extract command from the text
     " This serves 2 purposes.{{{
     "
