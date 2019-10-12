@@ -13,10 +13,10 @@
 " But those commands take some time.
 " Not sure it's worth it for the moment.
 "}}}
-let s:PATH_TO_CTLSEQS = '/usr/share/doc/xterm/ctlseqs.txt.gz'
+const s:PATH_TO_CTLSEQS = '/usr/share/doc/xterm/ctlseqs.txt.gz'
 
 " Interface {{{1
-fu! doc#cmd#ch(shell_cmd) abort "{{{2
+fu doc#cmd#ch(shell_cmd) abort "{{{2
     if a:shell_cmd is# ''
         let cmd = getline('.')
     else
@@ -26,7 +26,7 @@ fu! doc#cmd#ch(shell_cmd) abort "{{{2
     echo @o
 endfu
 
-fu! doc#cmd#ctlseqs() abort "{{{2
+fu doc#cmd#ctlseqs() abort "{{{2
     if s:ctlseqs_file_is_already_displayed()
         call s:focus_ctlseqs_window()
     else
@@ -37,7 +37,7 @@ fu! doc#cmd#ctlseqs() abort "{{{2
     endif
 endfu
 
-fu! doc#cmd#info(topic) abort "{{{2
+fu doc#cmd#info(topic) abort "{{{2
     new
     exe '.!info '..a:topic
     if bufname('%') isnot# '' | return | endif
@@ -45,15 +45,18 @@ fu! doc#cmd#info(topic) abort "{{{2
     nno <buffer><expr><nowait><silent> q reg_recording() isnot# '' ? 'q' : ':<c-u>q<cr>'
 endfu
 
-fu! doc#cmd#doc(...) abort "{{{2
+fu doc#cmd#doc(...) abort "{{{2
     if ! a:0 || (a:1 is# '--help' || a:1 is# '-h')
-        echo printf("usage:\n    %s\n    %s\n\n%s\n%s\n%s",
-        \ ':Doc div        keyword ''div'', scoped with current filetype',
-        \ ':Doc div html   keyword ''div'', scoped with html',
-        \ "If you don't get the expected information,",
-        \ 'make sure that the documentation for the relevant language is enabled on:',
-        \ '    https://devdocs.io/',
-        \ )
+        let usage =<< trim END
+        usage:
+            :Doc div        keyword 'div', scoped with current filetype
+            :Doc div html   keyword 'div', scoped with html
+
+        If you don't get the expected information,
+        make sure that the documentation for the relevant language is enabled on:
+            https://devdocs.io/
+        END
+        echo join(usage, "\n")
         return
     endif
 
@@ -70,7 +73,7 @@ fu! doc#cmd#doc(...) abort "{{{2
 endfu
 "}}}1
 " Core {{{1
-fu! s:focus_ctlseqs_window() abort "{{{2
+fu s:focus_ctlseqs_window() abort "{{{2
     let bufnr = bufnr('ctlseqs\.txt.\gz$')
     let winids = win_findbuf(bufnr)
     let tabpagenr = tabpagenr()
@@ -79,7 +82,7 @@ fu! s:focus_ctlseqs_window() abort "{{{2
 endfu
 "}}}1
 " Utilities {{{1
-fu! s:ctlseqs_file_is_already_displayed() abort "{{{2
+fu s:ctlseqs_file_is_already_displayed() abort "{{{2
     return match(map(tabpagebuflist(), {_,v -> bufname(v)}), 'ctlseqs\.txt\.gz$') != -1
 endfu
 

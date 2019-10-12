@@ -5,10 +5,17 @@ let g:autoloaded_doc#mapping = 1
 
 " Init {{{1
 
-let s:DEVDOCS_ENABLED_FILETYPES = ['bash', 'c', 'html', 'css', 'lua', 'python']
+let s:DEVDOCS_ENABLED_FILETYPES =<< trim END
+    bash
+    html
+    css
+    lua
+    python
+END
+let s:DEVDOCS_ENABLED_FILETYPES += ['c'] | lockvar s:DEVDOCS_ENABLED_FILETYPES
 
 " Interface {{{1
-fu! doc#mapping#main(type) abort "{{{2
+fu doc#mapping#main(type) abort "{{{2
     " Make tests on:{{{
     "
     " foo `man bash` bar
@@ -67,7 +74,7 @@ fu! doc#mapping#main(type) abort "{{{2
 endfu
 " }}}1
 " Core {{{1
-fu! s:get_cmd(type) abort "{{{2
+fu s:get_cmd(type) abort "{{{2
     if a:type is# 'vis'
         let cb_save  = &cb
         let sel_save = &sel
@@ -100,7 +107,7 @@ fu! s:get_cmd(type) abort "{{{2
     return cmd
 endfu
 
-fu! s:get_codespan(line, cmd_pat) abort "{{{2
+fu s:get_codespan(line, cmd_pat) abort "{{{2
     let cml = s:get_cml()
     let col = col('.')
     let pat =
@@ -140,7 +147,7 @@ fu! s:get_codespan(line, cmd_pat) abort "{{{2
     return codespan
 endfu
 
-fu! s:get_codeblock(line, cmd_pat) abort "{{{2
+fu s:get_codeblock(line, cmd_pat) abort "{{{2
     let cml = s:get_cml()
     let n = &ft is# 'markdown' ? 4 : 5
     let pat = '^\s*\V'..escape(cml, '\')..'\m \{'..n..'}'..a:cmd_pat
@@ -148,7 +155,7 @@ fu! s:get_codeblock(line, cmd_pat) abort "{{{2
     return codeblock
 endfu
 
-fu! s:document_word_under_cursor() abort "{{{2
+fu s:document_word_under_cursor() abort "{{{2
     if index(s:DEVDOCS_ENABLED_FILETYPES, &ft) == -1
         echo printf('the "%s" filetype is not enabled on https://devdocs.io/', &ft)
         return
@@ -157,7 +164,7 @@ fu! s:document_word_under_cursor() abort "{{{2
     exe 'Doc '..word..' '..&ft
 endfu
 
-fu! s:vimify_cmd(cmd) abort "{{{2
+fu s:vimify_cmd(cmd) abort "{{{2
     let cmd = a:cmd
     if cmd =~# '^\%(info\|man\)\s'
         let l:Rep = {m -> m[0] is# 'info' ? 'Info' : 'Man'}
@@ -182,7 +189,7 @@ fu! s:vimify_cmd(cmd) abort "{{{2
     return cmd
 endfu
 
-fu! s:set_search_register(topic) abort "{{{2
+fu s:set_search_register(topic) abort "{{{2
     " Populate the search register with  the topic if it doesn't contain
     " any offset, or with the last offset otherwise.
     if a:topic =~# '/;/' | let @/ = matchstr(a:topic, '.*/;/\zs.*')
@@ -191,13 +198,13 @@ fu! s:set_search_register(topic) abort "{{{2
 endfu
 "}}}1
 " Utilities {{{1
-fu! s:on_commented_line() abort "{{{2
+fu s:on_commented_line() abort "{{{2
     let cml = s:get_cml()
     if cml is# '' | return 0 | endif
     return getline('.') =~# '^\s*\V'..escape(cml, '\')
 endfu
 
-fu! s:get_cml() abort "{{{2
+fu s:get_cml() abort "{{{2
     if &ft is# 'markdown'
         let cml = ''
     else
@@ -206,11 +213,11 @@ fu! s:get_cml() abort "{{{2
     return cml
 endfu
 
-fu! s:visual_selection_contains_shell_code(type) abort "{{{2
+fu s:visual_selection_contains_shell_code(type) abort "{{{2
     return a:type is# 'vis' && &ft is# 'sh' && ! s:on_commented_line()
 endfu
 
-fu! s:not_in_documentation_buffer() abort "{{{2
+fu s:not_in_documentation_buffer() abort "{{{2
     return index(['help', 'info', 'man'], &ft) == -1
         \ && expand('%:t') isnot# 'ctlseqs.txt.gz'
 endfu

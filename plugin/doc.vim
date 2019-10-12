@@ -3,10 +3,10 @@ if exists('g:loaded_doc')
 endif
 let g:loaded_doc = 1
 
-com! -bar -nargs=? Ch call doc#cmd#ch(<q-args>)
-com! -bar -nargs=0 CtlSeqs call doc#cmd#ctlseqs()
-com! -bar -nargs=? Info call doc#cmd#info(<q-args>)
-com! -bar -nargs=* Doc call doc#cmd#doc(<f-args>)
+com -bar -nargs=? Ch call doc#cmd#ch(<q-args>)
+com -bar -nargs=0 CtlSeqs call doc#cmd#ctlseqs()
+com -bar -nargs=? Info call doc#cmd#info(<q-args>)
+com -bar -nargs=* Doc call doc#cmd#doc(<f-args>)
 
 " we use an opfunc just to make the mapping dot repeatable
 nno <silent><unique> -d :<c-u>set opfunc=doc#mapping#main<cr>g@l
