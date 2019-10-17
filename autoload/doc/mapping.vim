@@ -5,14 +5,14 @@ let g:autoloaded_doc#mapping = 1
 
 " Init {{{1
 
-let s:DEVDOCS_ENABLED_FILETYPES =<< trim END
-    bash
-    html
-    css
-    lua
-    python
+const s:DEVDOCS_ENABLED_FILETYPES =<< trim END
+bash
+c
+html
+css
+lua
+python
 END
-let s:DEVDOCS_ENABLED_FILETYPES += ['c'] | lockvar s:DEVDOCS_ENABLED_FILETYPES
 
 " Interface {{{1
 fu doc#mapping#main(type) abort "{{{2

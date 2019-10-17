@@ -9,7 +9,7 @@ com -bar -nargs=? Info call doc#cmd#info(<q-args>)
 com -bar -nargs=* Doc call doc#cmd#doc(<f-args>)
 
 " we use an opfunc just to make the mapping dot repeatable
-nno <silent><unique> -d :<c-u>set opfunc=doc#mapping#main<cr>g@l
+nno <silent><unique> -d :<c-u>set opfunc=doc#mapping#main<bar>norm! g@l<cr>
 " How is the visual mapping useful?{{{
 "
 " The normal mode  mapping works only if the documentation  command is contained
