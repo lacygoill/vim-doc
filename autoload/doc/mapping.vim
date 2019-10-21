@@ -6,12 +6,12 @@ let g:autoloaded_doc#mapping = 1
 " Init {{{1
 
 const s:DEVDOCS_ENABLED_FILETYPES =<< trim END
-bash
-c
-html
-css
-lua
-python
+    bash
+    c
+    html
+    css
+    lua
+    python
 END
 
 " Interface {{{1
