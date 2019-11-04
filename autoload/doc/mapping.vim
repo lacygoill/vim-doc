@@ -51,7 +51,10 @@ fu doc#mapping#main(type) abort "{{{2
     endif
     let cmd = s:vimify_cmd(cmd)
     if cmd =~# '^Man\s' && exists(':Man') != 2 | echo ':Man command is not installed' | return | endif
-    if cmd !~# '/' | exe cmd | return | endif
+    if cmd !~# '/'
+        try | exe cmd | catch | return lg#catch_error() | endtry
+        return
+    endif
     " The regexes are a little complex because a help topic can start with a slash.{{{
     "
     " Example: `:h /\@>`.

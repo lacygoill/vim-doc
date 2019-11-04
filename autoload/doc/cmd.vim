@@ -41,7 +41,9 @@ fu doc#cmd#info(topic) abort "{{{2
     new
     exe '.!info '..a:topic
     if bufname('%') isnot# '' | return | endif
-    setl bh=delete bt=nofile nobl noswf nowrap
+    " the filetype needs to be `info`, otherwise `doc#mapping#main` would return
+    " too early when there is a pattern to search
+    setl ft=info bh=delete bt=nofile nobl noswf nowrap
     nno <buffer><expr><nowait><silent> q reg_recording() isnot# '' ? 'q' : ':<c-u>q<cr>'
 endfu
 
