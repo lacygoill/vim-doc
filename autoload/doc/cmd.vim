@@ -5,7 +5,9 @@
 " You could use `findfile()`:
 "
 "     :echo findfile('ctlseqs.txt.gz', '/usr/share/**')
-"
+"                                                  ^^
+"                                                  could append a small number to limit the recursiveness
+"                                                  and make the command faster
 " Or `find(1)`:
 "
 "     :echo system('find /usr -path "*/xterm/*ctlseqs.txt.gz"')[:-2]
@@ -68,8 +70,8 @@ fu doc#cmd#doc(...) abort "{{{2
     let url = 'http://devdocs.io/?q='
 
     let args = a:0 == 1
-           \ ?     url..&ft..' '..a:1
-           \ :     url..a:2..' '..a:1
+        \ ? url..&ft..' '..a:1
+        \ : url..a:2..' '..a:1
 
     sil call system(cmd..' '..shellescape(args))
 endfu
