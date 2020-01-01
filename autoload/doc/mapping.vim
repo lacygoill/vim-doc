@@ -40,30 +40,59 @@ fu doc#mapping#main(type) abort "{{{2
     "     CSI ? Pm h/;/Ps = 2 0 0 4
     "     $ ls -larth
     "}}}
-    let cmd = call('s:get_cmd', [a:type])
+    let cmd = s:get_cmd(a:type)
     if cmd is# ''
-        if ! s:on_commented_line() | call s:document_word_under_cursor()
-        else | echo 'no known command here (man, :h, CSI, $ ls, ...)' | endif
+        " Why do some filetypes need to be handled specially?  Why can't they be handled via `'kp'`{{{
+        "
+        " Because  we need  some special  logic which  would need  to be  hidden
+        " behind custom  commands, and I  don't want to install  custom commands
+        " just for that.
+        "
+        " It would  also make the  code more complex;  you would have  to update
+        " `b:undo_ftplugin`  to  reset `'kp'`  and  remove  the ad-hoc  command.
+        " Besides, the latter needs a specific signature (`-buffer`, `-nargs=1`,
+        " `<q-args>`, ...).
+        " And it would introduce an additional dependency (`vim-lg`) because you
+        " would need to  move `s:use_manpage()` (and copy  `s:error()`) into the
+        " latter.
+        "
+        " ---
+        "
+        " There is  an additional benefit  in dealing here with  filetypes which
+        " need a special logic.
+        " We can tweak `'isk'` more easily to include some characters (e.g. `-`)
+        " when looking for the word under the cursor.
+        " It's easier here, because we only  have to write the code dealing with
+        " adding `-` to `'isk'` once; no code duplication.
+        "}}}
+        if s:filetype_is_special()
+            call s:handle_special_filetype()
+        elseif &l:kp isnot# ''
+            call s:use_kp()
+        elseif ! s:on_commented_line() && s:filetype_enabled_on_devdocs()
+            call s:use_devdoc()
+        else
+            echo 'no known command here (:h, $ cmd, man, info, CSI/OSC/DCS)'
+        endif
         return
     endif
     if s:visual_selection_contains_shell_code(a:type)
         exe 'Ch '..cmd | return
     endif
     let cmd = s:vimify_cmd(cmd)
-    if cmd =~# '^Man\s' && exists(':Man') != 2 | echo ':Man command is not installed' | return | endif
+    if cmd =~# '^Man\s' && exists(':Man') != 2 | return s:error(':Man command is not installed') | endif
     if cmd !~# '/'
         try | exe cmd | catch | return lg#catch_error() | endtry
         return
     endif
-    " The regexes are a little complex because a help topic can start with a slash.{{{
+    " The regex is a little complex because a help topic can start with a slash.{{{
     "
     " Example: `:h /\@>`.
     "
     " In that case, when parsing the command, we must not *stop* at this slash.
     " Same thing when parsing the offset: we must not *start* at this slash.
     "}}}
-    let [cmd, topic] = [matchstr(cmd, '.\{-}\ze\%(\%(:h\s\+\)\@<!/\|$\)'),
-                      \ matchstr(cmd, '\%(:h\s\+\)\@<!/.*')]
+    let [cmd, topic] = matchlist(cmd, '\(.\{-}\)\%(\%(:h\s\+\)\@<!\(/.*\)\|$\)')[1:2]
     exe cmd
     " `exe ... cmd` could fail without raising a real Vim error, e.g. `:Man not_a_cmd`.
     " In such a case, we don't want the cursor to move.
@@ -158,13 +187,86 @@ fu s:get_codeblock(line, cmd_pat) abort "{{{2
     return codeblock
 endfu
 
-fu s:document_word_under_cursor() abort "{{{2
-    if index(s:DEVDOCS_ENABLED_FILETYPES, &ft) == -1
-        echo printf('the "%s" filetype is not enabled on https://devdocs.io/', &ft)
+fu s:get_cword() abort "{{{2
+    let [isk_save, bufnr] = [&l:isk, bufnr('%')]
+    try
+        setl isk+=-
+        let cword = expand('<cword>')
+    finally
+        call setbufvar(bufnr, '&isk', isk_save)
+    endtry
+    return cword
+endfu
+
+fu s:handle_special_filetype() abort "{{{2
+    if &ft is# 'vim'
+        sil! exe 'help '..vim#helptopic()
+    elseif &ft is# 'tmux'
+        sil! call tmux#man()
+    elseif &ft is# 'sh'
+        call s:use_manpage('bash')
+    elseif &ft is# 'awk'
+        call s:use_manpage('awk')
+    elseif &ft is# 'python'
+        call s:use_pydoc()
+    endif
+endfu
+
+fu s:use_manpage(name) abort "{{{2
+    if exists(':Man') != 2 | return s:error(':Man command is not installed') | endif
+    let cword = s:get_cword()
+    let cmd = printf('Man %s %s', v:count ? v:count : '', cword)
+    if v:count | exe cmd | return | endif
+    try
+        " first try to look for the current word in the bash/awk manpage
+        exe 'Man '..a:name
+        let pat = '\m\C^\s*\zs\<'..cword..'\>\ze\%(\s\|$\)'
+        exe '/'..pat
+        let @/ = pat
+    catch /^Vim\%((\a\+)\)\=:E486:/
+        " if you can't find it there, use it as the name of a manpage
+        q
+        " Why not trying to catch a possible error if we press `K` on some random word?{{{
+        "
+        " When `:Man`  is passed the  name of  a non-existing manpage,  an error
+        " message is echo'ed;  but it's just a message highlighted  in red; it's
+        " not a real error, so you can't catch it.
+        "}}}
+        exe cmd
+    endtry
+endfu
+
+fu s:use_kp() abort "{{{2
+    let cword = s:get_cword()
+    if &l:kp[0] is# ':'
+        try
+            exe printf('%s %s %s', &l:kp, v:count ? v:count : '', cword)
+        catch /^Vim\%((\a\+)\)\=:E149:/
+            echohl ErrorMsg
+            echom v:exception
+            echohl NONE
+        endtry
+    else
+        exe printf('!%s %s %s', &l:kp, v:count ? v:count : '', shellescape(cword, 1))
+    endif
+endfu
+
+fu s:use_pydoc() abort "{{{2
+    let cword = s:get_cword()
+    sil let doc = systemlist('pydoc '..shellescape(cword))
+    if get(doc, 0, '') =~# '^no Python documentation found for'
+        echo doc[0]
         return
     endif
-    let word = expand('<cword>')
-    exe 'Doc '..word..' '..&ft
+    exe 'new '..tempname()
+    call setline(1, doc)
+    setl bh=delete bt=nofile nobl noswf noma ro
+    nmap <buffer><nowait><silent> q <plug>(my_quit)
+endfu
+
+fu s:use_devdoc() abort "{{{2
+    let cword = s:get_cword()
+    exe 'Doc '..cword..' '..&ft
 endfu
 
 fu s:vimify_cmd(cmd) abort "{{{2
@@ -185,9 +287,10 @@ fu s:vimify_cmd(cmd) abort "{{{2
         " documentation command.
         "
         " Or when you refactor `s:get_cmd()` to support a new kind of documentation
-        " command, but you we forget to refactor this function to "vimify" it.
+        " command, but you forget to refactor this function to "vimify" it.
         "}}}
-        echo 'not a documentation command (man, :h, CSI, $ ls, ...)' | let cmd = ''
+        echo 'not a documentation command (:h, $ cmd, man, info, CSI/OSC/DCS)'
+        let cmd = ''
     endif
     return cmd
 endfu
@@ -201,17 +304,31 @@ fu s:set_search_register(topic) abort "{{{2
 endfu
 "}}}1
 " Utilities {{{1
+fu s:filetype_is_special() abort "{{{2
+    return index(['awk', 'sh', 'tmux', 'vim', 'python'], &ft) != -1
+endfu
+
+fu s:error(msg) abort "{{{2
+    echohl ErrorMsg
+    echo a:msg
+    echohl NONE
+endfu
+
 fu s:on_commented_line() abort "{{{2
     let cml = s:get_cml()
     if cml is# '' | return 0 | endif
     return getline('.') =~# '^\s*\V'..escape(cml, '\')
 endfu
 
+fu s:filetype_enabled_on_devdocs() abort "{{{2
+    return index(s:DEVDOCS_ENABLED_FILETYPES, &ft) != -1
+endfu
+
 fu s:get_cml() abort "{{{2
     if &ft is# 'markdown'
         let cml = ''
     else
-        let cml = matchstr(get(split(&l:cms, '%s', 1), 0, ''), '\S*')
+        let cml = matchstr(&l:cms, '\S*\ze\s*%s')
     endif
     return cml
 endfu
