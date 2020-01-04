@@ -69,7 +69,7 @@ fu doc#mapping#main(type) abort "{{{2
             call s:handle_special_filetype()
         elseif &l:kp isnot# ''
             call s:use_kp()
-        elseif ! s:on_commented_line() && s:filetype_enabled_on_devdocs()
+        elseif !s:on_commented_line() && s:filetype_enabled_on_devdocs()
             call s:use_devdoc()
         else
             echo 'no known command here (:h, $ cmd, man, info, CSI/OSC/DCS)'
@@ -200,9 +200,10 @@ endfu
 
 fu s:handle_special_filetype() abort "{{{2
     if &ft is# 'vim'
-        sil! exe 'help '..vim#helptopic()
+        " there may be no help tag for the current word
+        try | exe 'help '..vim#helptopic() | catch | return lg#catch_error() | endtry
     elseif &ft is# 'tmux'
-        sil! call tmux#man()
+        try | call tmux#man() | catch | return lg#catch_error() | endtry
     elseif &ft is# 'sh'
         call s:use_manpage('bash')
     elseif &ft is# 'awk'
@@ -334,7 +335,7 @@ fu s:get_cml() abort "{{{2
 endfu
 
 fu s:visual_selection_contains_shell_code(type) abort "{{{2
-    return a:type is# 'vis' && &ft is# 'sh' && ! s:on_commented_line()
+    return a:type is# 'vis' && &ft is# 'sh' && !s:on_commented_line()
 endfu
 
 fu s:not_in_documentation_buffer() abort "{{{2

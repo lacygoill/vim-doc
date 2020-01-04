@@ -50,7 +50,7 @@ fu doc#cmd#info(topic) abort "{{{2
 endfu
 
 fu doc#cmd#doc(...) abort "{{{2
-    if ! a:0 || (a:1 is# '--help' || a:1 is# '-h')
+    if !a:0 || (a:1 is# '--help' || a:1 is# '-h')
         let usage =<< trim END
             usage:
                 :Doc div        keyword 'div', scoped with current filetype
