@@ -81,7 +81,31 @@ fu doc#mapping#main(type) abort "{{{2
     endif
     let cmd = s:vimify_cmd(cmd)
     if cmd =~# '^Man\s' && exists(':Man') != 2 | return s:error(':Man command is not installed') | endif
-    if cmd !~# '/'
+    " If the command does not contain a `/topic` token, just execute it.{{{
+    "
+    " Note that a  shell command may include  a slash, but it will  never be the
+    " start of a `/topic`. We never use `/topic` after a shell command:
+    "
+    "     ✔
+    "     $ ls -larth
+    "
+    "     ✘
+    "     $ ls -larth /some topic
+    "}}}
+    if cmd !~# '/' || cmd =~# '^Ch '
+        " Don't let a quote or a bar terminate the shell command prematurely.{{{
+        "
+        "     com -bar -nargs=1 Ch call Func(<q-args>)
+        "     fu Func(cmd) abort
+        "         echo a:cmd
+        "     endfu
+        "
+        "     Ch a"b
+        "     a~
+        "     Ch a|b
+        "     a~
+        "}}}
+        let cmd = escape(cmd, '"|')
         try | exe cmd | catch | return lg#catch_error() | endtry
         return
     endif
