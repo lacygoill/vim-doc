@@ -16,6 +16,7 @@ END
 
 " Interface {{{1
 fu doc#mapping#main(type) abort "{{{2
+    let cnt = v:count
     " Make tests on:{{{
     "
     " foo `man bash` bar
@@ -66,9 +67,9 @@ fu doc#mapping#main(type) abort "{{{2
         " adding `-` to `'isk'` once; no code duplication.
         "}}}
         if s:filetype_is_special()
-            call s:handle_special_filetype()
+            call s:handle_special_filetype(cnt)
         elseif &l:kp isnot# ''
-            call s:use_kp()
+            call s:use_kp(cnt)
         elseif !s:on_commented_line() && s:filetype_enabled_on_devdocs()
             call s:use_devdoc()
         else
@@ -222,26 +223,26 @@ fu s:get_cword() abort "{{{2
     return cword
 endfu
 
-fu s:handle_special_filetype() abort "{{{2
+fu s:handle_special_filetype(cnt) abort "{{{2
     if &ft is# 'vim'
         " there may be no help tag for the current word
         try | exe 'help '..vim#helptopic() | catch | return lg#catch_error() | endtry
     elseif &ft is# 'tmux'
         try | call tmux#man() | catch | return lg#catch_error() | endtry
     elseif &ft is# 'sh'
-        call s:use_manpage('bash')
+        call s:use_manpage('bash', a:cnt)
     elseif &ft is# 'awk'
-        call s:use_manpage('awk')
+        call s:use_manpage('awk', a:cnt)
     elseif &ft is# 'python'
         call s:use_pydoc()
     endif
 endfu
 
-fu s:use_manpage(name) abort "{{{2
+fu s:use_manpage(name, cnt) abort "{{{2
     if exists(':Man') != 2 | return s:error(':Man command is not installed') | endif
     let cword = s:get_cword()
-    let cmd = printf('Man %s %s', v:count ? v:count : '', cword)
-    if v:count | exe cmd | return | endif
+    let cmd = printf('Man %s %s', a:cnt ? a:cnt : '', cword)
+    if a:cnt | exe cmd | return | endif
     try
         " first try to look for the current word in the bash/awk manpage
         exe 'Man '..a:name
@@ -261,18 +262,18 @@ fu s:use_manpage(name) abort "{{{2
     endtry
 endfu
 
-fu s:use_kp() abort "{{{2
+fu s:use_kp(cnt) abort "{{{2
     let cword = s:get_cword()
     if &l:kp[0] is# ':'
         try
-            exe printf('%s %s %s', &l:kp, v:count ? v:count : '', cword)
+            exe printf('%s %s %s', &l:kp, a:cnt ? a:cnt : '', cword)
         catch /^Vim\%((\a\+)\)\=:E149:/
             echohl ErrorMsg
             echom v:exception
             echohl NONE
         endtry
     else
-        exe printf('!%s %s %s', &l:kp, v:count ? v:count : '', shellescape(cword, 1))
+        exe printf('!%s %s %s', &l:kp, a:cnt ? a:cnt : '', shellescape(cword, 1))
     endif
 endfu
 
