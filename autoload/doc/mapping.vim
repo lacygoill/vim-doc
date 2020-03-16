@@ -107,7 +107,7 @@ fu doc#mapping#main(type) abort "{{{2
         "     a~
         "}}}
         let cmd = escape(cmd, '"|')
-        try | exe cmd | catch | return lg#catch_error() | endtry
+        try | exe cmd | catch | return lg#catch() | endtry
         return
     endif
     " The regex is a little complex because a help topic can start with a slash.{{{
@@ -141,7 +141,7 @@ fu s:get_cmd(type) abort "{{{2
             set sel=inclusive
             sil norm! gvy
             let cmd = @"
-        catch | return lg#catch_error()
+        catch | return lg#catch()
         finally | call setreg('"', reg_save[0], reg_save[1])
         endtry
     else
@@ -226,9 +226,9 @@ endfu
 fu s:handle_special_filetype(cnt) abort "{{{2
     if &ft is# 'vim'
         " there may be no help tag for the current word
-        try | exe 'help '..vim#helptopic() | catch | return lg#catch_error() | endtry
+        try | exe 'help '..vim#helptopic() | catch | return lg#catch() | endtry
     elseif &ft is# 'tmux'
-        try | call tmux#man() | catch | return lg#catch_error() | endtry
+        try | call tmux#man() | catch | return lg#catch() | endtry
     elseif &ft is# 'sh'
         call s:use_manpage('bash', a:cnt)
     elseif &ft is# 'awk'
