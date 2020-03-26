@@ -161,6 +161,14 @@ fu s:get_cmd(type) abort "{{{2
         elseif codespan isnot ''  | let cmd = codespan
         endif
     endif
+    " Ignore everything after a bar.{{{
+    "
+    " Useful to  avoid an  error when  pressing `K`  while visually  selecting a
+    " shell command containing a pipe.
+    " Also,  we don't  want Vim  to  interpret what  follows  the bar  as an  Ex
+    " command; it could be anything, too dangerous.
+    "}}}
+    let cmd = substitute(cmd, '.\{-}\zs|.*', '', '')
     return cmd
 endfu
 

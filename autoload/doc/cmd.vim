@@ -24,7 +24,13 @@ fu doc#cmd#ch(shell_cmd) abort "{{{2
     else
         let cmd = a:shell_cmd
     endif
-    sil let @o = system('ch '..cmd..' 2>/dev/null')
+    " The bang suppresses an error in case we've visually a command with an unterminated string:{{{
+    "
+    "     awk '{print $1}'
+    "     ^^^^^^^^^
+    "     selection; the closing quote is missing
+    "}}}
+    sil! let @o = system('ch '..cmd..' 2>/dev/null')
     echo @o
 endfu
 
