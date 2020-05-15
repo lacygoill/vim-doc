@@ -124,7 +124,8 @@ fu doc#mapping#main(type) abort "{{{2
     if s:not_in_documentation_buffer() | return | endif
     try
         exe topic
-    catch /^Vim\%((\a\+)\)\=:E486:/
+    " E486, E874, ...
+    catch
         echohl ErrorMsg | echom v:exception | echohl NONE
     endtry
     call s:set_search_register(topic)
