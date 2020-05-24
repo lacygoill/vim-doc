@@ -15,6 +15,6 @@ xno <silent><unique> K :<c-u>call doc#mapping#main('vis')<cr>
 
 com -bar -nargs=1 Ch call doc#cmd#ch(<q-args>)
 com -bar -nargs=0 CtlSeqs call doc#cmd#ctlseqs()
-com -bar -nargs=? Info call doc#cmd#info(<q-args>)
+com -bar -nargs=? -complete=shellcmd Info call doc#cmd#info(<q-args>)
 com -bar -nargs=* Doc call doc#cmd#doc(<f-args>)
 
