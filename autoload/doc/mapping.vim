@@ -276,7 +276,7 @@ fu s:use_kp(cnt) abort "{{{2
     if &l:kp[0] is# ':'
         try
             exe printf('%s %s %s', &l:kp, a:cnt ? a:cnt : '', cword)
-        catch /^Vim\%((\a\+)\)\=:E149:/
+        catch /^Vim\%((\a\+)\)\=:\%(E149\|E434\):/
             echohl ErrorMsg
             echom v:exception
             echohl NONE
