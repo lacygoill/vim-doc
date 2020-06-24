@@ -135,16 +135,17 @@ endfu
 " Core {{{1
 fu s:get_cmd(type) abort "{{{2
     if a:type is# 'vis'
-        let cb_save  = &cb
-        let sel_save = &sel
-        let reg_save = [getreg('"'), getregtype('"')]
+        let [cb_save, sel_save] = [&cb, &sel]
+        let reg_save = getreginfo('"')
         try
-            set cb-=unnamed cb-=unnamedplus
-            set sel=inclusive
+            set cb-=unnamed cb-=unnamedplus sel=inclusive
             sil norm! gvy
             let cmd = @"
-        catch | return lg#catch()
-        finally | call setreg('"', reg_save[0], reg_save[1])
+        catch
+            return lg#catch()
+        finally
+            let [&cb, &sel] = [cb_save, sel_save]
+            call setreg('"', reg_save)
         endtry
     else
         let line = getline('.')
