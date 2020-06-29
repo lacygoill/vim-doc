@@ -138,7 +138,7 @@ fu s:get_cmd(type) abort "{{{2
         let [cb_save, sel_save] = [&cb, &sel]
         let reg_save = getreginfo('"')
         try
-            set cb-=unnamed cb-=unnamedplus sel=inclusive
+            set cb= sel=inclusive
             sil norm! gvy
             let cmd = @"
         catch
@@ -259,7 +259,7 @@ fu s:use_manpage(name, cnt) abort "{{{2
         exe 'Man '..a:name
         let pat = '\m\C^\s*\zs\<'..cword..'\>\ze\%(\s\|$\)'
         exe '/'..pat
-        let @/ = pat
+        call setreg('/', [pat], 'c')
     catch /^Vim\%((\a\+)\)\=:E486:/
         " if you can't find it there, use it as the name of a manpage
         q
@@ -335,9 +335,12 @@ endfu
 fu s:set_search_register(topic) abort "{{{2
     " Populate the search register with  the topic if it doesn't contain
     " any offset, or with the last offset otherwise.
-    if a:topic =~# '/;/' | let @/ = matchstr(a:topic, '.*/;/\zs.*')
+    if a:topic =~# '/;/'
+        call setreg('/', [matchstr(a:topic, '.*/;/\zs.*')], 'c')
     " remove leading `/`
-    else | let @/ = a:topic[1:] | endif
+    else
+        call setreg('/', [a:topic[1:]], 'c')
+    endif
 endfu
 
 fu s:helptopic() abort "{{{2

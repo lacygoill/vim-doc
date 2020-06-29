@@ -30,7 +30,7 @@ fu doc#cmd#ch(shell_cmd) abort "{{{2
     "     ^-------^
     "     selection; the closing quote is missing
     "}}}
-    sil! let @o = system('ch '..cmd..' 2>/dev/null')
+    sil! call systemlist('ch '..cmd..' 2>/dev/null')->setreg('o', 'c')
     echo @o
 endfu
 
