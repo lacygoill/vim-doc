@@ -5,6 +5,9 @@ let g:autoloaded_doc#mapping = 1
 
 " Init {{{1
 
+import Catch from 'lg.vim'
+import Getselection from 'lg.vim'
+
 const s:DEVDOCS_ENABLED_FILETYPES =<< trim END
     bash
     c
@@ -42,7 +45,7 @@ fu doc#mapping#main(type) abort "{{{2
     "     $ ls -larth
     "}}}
     let cmd = s:get_cmd(a:type)
-    if cmd is# ''
+    if cmd == ''
         " Why do some filetypes need to be handled specially?  Why can't they be handled via `'kp'`{{{
         "
         " Because  we need  some special  logic which  would need  to be  hidden
@@ -68,7 +71,7 @@ fu doc#mapping#main(type) abort "{{{2
         "}}}
         if s:filetype_is_special()
             call s:handle_special_filetype(cnt)
-        elseif &l:kp isnot# ''
+        elseif &l:kp != ''
             call s:use_kp(cnt)
         elseif !s:on_commented_line() && s:filetype_enabled_on_devdocs()
             call s:use_devdoc()
@@ -78,14 +81,14 @@ fu doc#mapping#main(type) abort "{{{2
         return
     endif
     if s:visual_selection_contains_shell_code(a:type)
-        exe 'Ch '..cmd | return
+        exe 'Ch ' .. cmd | return
     endif
     let cmd = s:vimify_cmd(cmd)
     if cmd =~# '^Man\s' && exists(':Man') != 2 | return s:error(':Man command is not installed') | endif
     " If the command does not contain a `/topic` token, just execute it.{{{
     "
     " Note that a  shell command may include  a slash, but it will  never be the
-    " start of a `/topic`. We never use `/topic` after a shell command:
+    " start of a `/topic`.  We never use `/topic` after a shell command:
     "
     "     ✔
     "     $ ls -larth
@@ -107,7 +110,7 @@ fu doc#mapping#main(type) abort "{{{2
         "     a~
         "}}}
         let cmd = escape(cmd, '"|')
-        try | exe cmd | catch | return lg#catch() | endtry
+        try | exe cmd | catch | return s:Catch() | endtry
         return
     endif
     " The regex is a little complex because a help topic can start with a slash.{{{
@@ -135,7 +138,7 @@ endfu
 " Core {{{1
 fu s:get_cmd(type) abort "{{{2
     if a:type is# 'vis'
-        let cmd = lg#getselection()->join("\n")
+        let cmd = s:Getselection()->join("\n")
     else
         let line = getline('.')
         let cmd_pat =
@@ -143,14 +146,14 @@ fu s:get_cmd(type) abort "{{{2
             \ ..    ':h\|info\|man\|CSI\|OSC\|DCS\|'
             "\ random shell command for which we want a description via `ch`
             \ ..    '\$'
-            \ ..'\)\s.*'
+            \ .. '\)\s.*'
         let codespan = s:get_codespan(line, cmd_pat)
         let codeblock = s:get_codeblock(line, cmd_pat)
-        if codeblock is# '' && codespan is# '' | let cmd = ''
+        if codeblock == '' && codespan == '' | let cmd = ''
         " if the  function finds a codespan  *and* a codeblock, we  want to give
         " the priority to the latter
-        elseif codeblock isnot '' | let cmd = codeblock
-        elseif codespan isnot ''  | let cmd = codespan
+        elseif codeblock != '' | let cmd = codeblock
+        elseif codespan != ''  | let cmd = codespan
         endif
     endif
     " Ignore everything after a bar.{{{
@@ -169,7 +172,7 @@ fu s:get_codespan(line, cmd_pat) abort "{{{2
     let col = col('.')
     let pat =
         "\ we are on a commented line
-        \    '\%(^\s*\V'..escape(cml, '\')..'\m.*\)\@<='
+        \    '\%(^\s*\V' .. escape(cml, '\') .. '\m.*\)\@<='
         \ .. '\%(^\%('
         "\ there can be a codespan before
         \ ..         '`[^`]*`'
@@ -182,10 +185,10 @@ fu s:get_codespan(line, cmd_pat) abort "{{{2
         \ ..  '\)\@<='
         \ .. '\%('
         "\ a codespan with the cursor in the middle
-        \ ..     '`[^`]*\%'..col..'c[^`]*`'
+        \ ..     '`[^`]*\%' .. col .. 'c[^`]*`'
         \ ..     '\|'
         "\ a codespan with the cursor on the opening backtick
-        \ ..     '\%'..col..'c`[^`]*`'
+        \ ..     '\%' .. col .. 'c`[^`]*`'
         \ ..  '\)'
 
     " extract codespan from the line
@@ -200,14 +203,14 @@ fu s:get_codespan(line, cmd_pat) abort "{{{2
     " Make  sure the text does  contain a command  for which our plugin  can find
     " some documentation.
     "}}}
-    let codespan = matchstr(codespan, '^'..a:cmd_pat)
+    let codespan = matchstr(codespan, '^' .. a:cmd_pat)
     return codespan
 endfu
 
 fu s:get_codeblock(line, cmd_pat) abort "{{{2
     let cml = s:get_cml()
     let n = &ft is# 'markdown' ? 4 : 5
-    let pat = '^\s*\V'..escape(cml, '\')..'\m \{'..n..'}'..a:cmd_pat
+    let pat = '^\s*\V' .. escape(cml, '\') .. '\m \{' .. n .. '}' .. a:cmd_pat
     let codeblock = matchstr(a:line, pat)
     return codeblock
 endfu
@@ -226,9 +229,9 @@ endfu
 fu s:handle_special_filetype(cnt) abort "{{{2
     if &ft is# 'vim'
         " there may be no help tag for the current word
-        try | exe 'help '..s:helptopic() | catch | return lg#catch() | endtry
+        try | exe 'help ' .. s:helptopic() | catch | return s:Catch() | endtry
     elseif &ft is# 'tmux'
-        try | call tmux#man() | catch | return lg#catch() | endtry
+        try | call tmux#man() | catch | return s:Catch() | endtry
     elseif &ft is# 'sh'
         call s:use_manpage('bash', a:cnt)
     elseif &ft is# 'awk'
@@ -245,9 +248,9 @@ fu s:use_manpage(name, cnt) abort "{{{2
     if a:cnt | exe cmd | return | endif
     try
         " first try to look for the current word in the bash/awk manpage
-        exe 'Man '..a:name
-        let pat = '\m\C^\s*\zs\<'..cword..'\>\ze\%(\s\|$\)'
-        exe '/'..pat
+        exe 'Man ' .. a:name
+        let pat = '\m\C^\s*\zs\<' .. cword .. '\>\ze\%(\s\|$\)'
+        exe '/' .. pat
         call setreg('/', [pat], 'c')
     catch /^Vim\%((\a\+)\)\=:E486:/
         " if you can't find it there, use it as the name of a manpage
@@ -279,12 +282,12 @@ endfu
 
 fu s:use_pydoc() abort "{{{2
     let cword = s:get_cword()
-    sil let doc = systemlist('pydoc '..shellescape(cword))
+    sil let doc = systemlist('pydoc ' .. shellescape(cword))
     if get(doc, 0, '') =~# '^no Python documentation found for'
         echo doc[0]
         return
     endif
-    exe 'new '..tempname()
+    exe 'new ' .. tempname()
     call setline(1, doc)
     setl bh=delete bt=nofile nobl noswf noma ro
     nmap <buffer><nowait><silent> q <plug>(my_quit)
@@ -292,7 +295,7 @@ endfu
 
 fu s:use_devdoc() abort "{{{2
     let cword = s:get_cword()
-    exe 'Doc '..cword..' '..&ft
+    exe 'Doc ' .. cword .. ' ' .. &ft
 endfu
 
 fu s:vimify_cmd(cmd) abort "{{{2
@@ -335,40 +338,42 @@ endfu
 fu s:helptopic() abort "{{{2
     let [line, col] = [getline('.'), col('.')]
     if line[col-1] =~# '\k'
-        let pat_pre = '.*\ze\<\k*\%'..col..'c'
+        let pat_pre = '.*\ze\<\k*\%' .. col .. 'c'
     else
-        let pat_pre = '.*\%'..col..'c.'
+        let pat_pre = '.*\%' .. col .. 'c.'
     endif
-    let pat_post = '\%'..col..'c\k*\>\zs.*'
+    let pat_post = '\%' .. col .. 'c\k*\>\zs.*'
     let pre = matchstr(line, pat_pre)
     let post = matchstr(line, pat_post)
 
-    let syntax_item = get(reverse(map(synstack(line('.'), col('.')),
-        \ {_,v -> synIDattr(v,'name')})), 0, '')
+    let syntax_item = synstack('.', col('.'))
+        \ ->map({_, v -> synIDattr(v,'name')})
+        \ ->reverse()
+        \ ->get(0, '')
     let cword = expand('<cword>')
 
     if syntax_item is# 'vimFuncName'
-        return cword..'()'
+        return cword .. '()'
     elseif syntax_item is# 'vimOption'
-        return "'"..cword.."'"
+        return "'" .. cword .. "'"
     " `-bar`, `-nargs`, `-range`...
     elseif syntax_item is# 'vimUserAttrbKey'
-        return ':command-'..cword
+        return ':command-' .. cword
     " `<silent>`, `<unique>`, ...
     elseif syntax_item is# 'vimMapModKey'
-        return ':map-<'..cword
+        return ':map-<' .. cword
 
     " if the word under the cursor is  preceded by nothing, except maybe a colon
     " right before, treat it as an Ex command
     elseif pre =~# '^\s*:\=$'
-        return ':'..cword
+        return ':' .. cword
 
     " `v:key`, `v:val`, `v:count`, ... (cursor after `:`)
     elseif pre =~# '\<v:$'
-        return 'v:'..cword
+        return 'v:' .. cword
     " `v:key`, `v:val`, `v:count`, ... (cursor on `v`)
     elseif cword is# 'v' && post =~# ':\w\+'
-        return 'v'..matchstr(post, ':\w\+')
+        return 'v' .. matchstr(post, ':\w\+')
 
     else
         return cword
@@ -388,8 +393,8 @@ endfu
 
 fu s:on_commented_line() abort "{{{2
     let cml = s:get_cml()
-    if cml is# '' | return 0 | endif
-    return getline('.') =~# '^\s*\V'..escape(cml, '\')
+    if cml == '' | return 0 | endif
+    return getline('.') =~# '^\s*\V' .. escape(cml, '\')
 endfu
 
 fu s:filetype_enabled_on_devdocs() abort "{{{2
