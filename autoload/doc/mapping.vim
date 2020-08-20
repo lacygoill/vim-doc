@@ -5,8 +5,7 @@ let g:autoloaded_doc#mapping = 1
 
 " Init {{{1
 
-import Catch from 'lg.vim'
-import Getselection from 'lg.vim'
+import {Catch, GetSelection} from 'lg.vim'
 
 const s:DEVDOCS_ENABLED_FILETYPES =<< trim END
     bash
@@ -138,7 +137,7 @@ endfu
 " Core {{{1
 fu s:get_cmd(type) abort "{{{2
     if a:type is# 'vis'
-        let cmd = s:Getselection()->join("\n")
+        let cmd = s:GetSelection()->join("\n")
     else
         let line = getline('.')
         let cmd_pat =
@@ -172,7 +171,7 @@ fu s:get_codespan(line, cmd_pat) abort "{{{2
     let col = col('.')
     let pat =
         "\ we are on a commented line
-        \    '\%(^\s*\V' .. escape(cml, '\') .. '\m.*\)\@<='
+        \    '\%(^\s*\V' .. cml .. '\m.*\)\@<='
         \ .. '\%(^\%('
         "\ there can be a codespan before
         \ ..         '`[^`]*`'
@@ -210,7 +209,7 @@ endfu
 fu s:get_codeblock(line, cmd_pat) abort "{{{2
     let cml = s:get_cml()
     let n = &ft is# 'markdown' ? 4 : 5
-    let pat = '^\s*\V' .. escape(cml, '\') .. '\m \{' .. n .. '}' .. a:cmd_pat
+    let pat = '^\s*\V' .. cml .. '\m \{' .. n .. '}' .. a:cmd_pat
     let codeblock = matchstr(a:line, pat)
     return codeblock
 endfu
@@ -394,7 +393,7 @@ endfu
 fu s:on_commented_line() abort "{{{2
     let cml = s:get_cml()
     if cml == '' | return 0 | endif
-    return getline('.') =~# '^\s*\V' .. escape(cml, '\')
+    return getline('.') =~# '^\s*\V' .. cml
 endfu
 
 fu s:filetype_enabled_on_devdocs() abort "{{{2
@@ -404,8 +403,10 @@ endfu
 fu s:get_cml() abort "{{{2
     if &ft is# 'markdown'
         let cml = ''
+    elseif &ft is# 'vim'
+        let cml = '\m["#]\V'
     else
-        let cml = matchstr(&l:cms, '\S*\ze\s*%s')
+        let cml = matchstr(&l:cms, '\S*\ze\s*%s')->escape('\')
     endif
     return cml
 endfu
