@@ -45,7 +45,7 @@ fu doc#mapping#main(type) abort "{{{2
     "}}}
     let cmd = s:get_cmd(a:type)
     if cmd == ''
-        " Why do some filetypes need to be handled specially?  Why can't they be handled via `'kp'`{{{
+        " Why do some filetypes need to be handled specially?  Why can't they be handled via `'kp'`?{{{
         "
         " Because  we need  some special  logic which  would need  to be  hidden
         " behind custom  commands, and I  don't want to install  custom commands
@@ -132,7 +132,6 @@ fu doc#mapping#main(type) abort "{{{2
     endtry
     call s:set_search_register(topic)
 endfu
-
 " }}}1
 " Core {{{1
 fu s:get_cmd(type) abort "{{{2
@@ -226,17 +225,19 @@ fu s:get_cword() abort "{{{2
 endfu
 
 fu s:handle_special_filetype(cnt) abort "{{{2
-    if &ft is# 'vim'
+    if &ft is# 'vim' || &ft is# 'markdown' && s:In('markdownHighlightvim')
         " there may be no help tag for the current word
         try | exe 'help ' .. s:helptopic() | catch | return s:Catch() | endtry
     elseif &ft is# 'tmux'
         try | call tmux#man() | catch | return s:Catch() | endtry
-    elseif &ft is# 'sh'
-        call s:use_manpage('bash', a:cnt)
     elseif &ft is# 'awk'
         call s:use_manpage('awk', a:cnt)
+    elseif &ft is# 'markdown'
+        call s:use_manpage('markdown', a:cnt)
     elseif &ft is# 'python'
         call s:use_pydoc()
+    elseif &ft is# 'sh'
+        call s:use_manpage('bash', a:cnt)
     endif
 endfu
 
@@ -380,8 +381,14 @@ fu s:helptopic() abort "{{{2
 endfu
 "}}}1
 " Utilities {{{1
+fu s:In(syngroup) abort "{{{2
+    return synstack('.', col('.'))
+        \ ->map({_, v -> synIDattr(v, 'name')})
+        \ ->match('\c' .. a:syngroup) != -1
+endfu
+
 fu s:filetype_is_special() abort "{{{2
-    return index(['awk', 'sh', 'tmux', 'vim', 'python'], &ft) != -1
+    return index(['awk', 'markdown', 'python', 'sh', 'tmux', 'vim'], &ft) != -1
 endfu
 
 fu s:error(msg) abort "{{{2
