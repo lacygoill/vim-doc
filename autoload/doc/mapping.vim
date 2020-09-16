@@ -225,7 +225,9 @@ fu s:get_cword() abort "{{{2
 endfu
 
 fu s:handle_special_filetype(cnt) abort "{{{2
-    if &ft is# 'vim' || &ft is# 'markdown' && s:In('markdownHighlightvim')
+    if &ft is# 'vim'
+        \ || &ft is# 'markdown' && s:In('markdownHighlightvim')
+        \ || &ft is# 'markdown' && getcwd() is# $HOME .. '/wiki/vim'
         " there may be no help tag for the current word
         try | exe 'help ' .. s:helptopic() | catch | return s:Catch() | endtry
     elseif &ft is# 'tmux'
@@ -302,7 +304,7 @@ fu s:vimify_cmd(cmd) abort "{{{2
     let cmd = a:cmd
     if cmd =~# '^\%(info\|man\)\s'
         let l:Rep = {m -> m[0] is# 'info' ? 'Info' : 'Man'}
-        let cmd = substitute(cmd, '^\%(info\|man\)', l:Rep, '')
+        let cmd = substitute(cmd, '^\%(info\|man\)', Rep, '')
     elseif cmd =~# '^\%(CSI\|OSC\|DCS\)\s'
         let cmd = substitute(cmd, '^', 'CtlSeqs /', '')
     elseif cmd =~# '^\$\s'
@@ -352,7 +354,9 @@ fu s:helptopic() abort "{{{2
         \ ->get(0, '')
     let cword = expand('<cword>')
 
-    if syntax_item is# 'vimFuncName'
+    if syntax_item is# 'markdownCodeBlock'
+        return cword
+    elseif syntax_item is# 'vimFuncName'
         return cword .. '()'
     elseif syntax_item is# 'vimOption'
         return "'" .. cword .. "'"
