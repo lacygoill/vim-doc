@@ -3,7 +3,7 @@ if exists('g:loaded_doc')
 endif
 let g:loaded_doc = 1
 
-nno <silent><unique> K :<c-u>call doc#mapping#main('')<cr>
+nno <unique> K <cmd>call doc#mapping#main()<cr>
 " How is the visual mapping useful?{{{
 "
 " The normal mode  mapping works only if the documentation  command is contained
@@ -11,7 +11,7 @@ nno <silent><unique> K :<c-u>call doc#mapping#main('')<cr>
 "
 " It's also useful to get the description of a shell command via the script `ch`.
 "}}}
-xno <silent><unique> K :<c-u>call doc#mapping#main('vis')<cr>
+xno <unique> K <c-\><c-n><cmd>call doc#mapping#main('vis')<cr>
 
 com -bar -nargs=1 Ch call doc#cmd#ch(<q-args>)
 com -bar -nargs=0 CtlSeqs call doc#cmd#ctlseqs()

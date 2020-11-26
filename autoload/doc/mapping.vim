@@ -17,7 +17,7 @@ const s:DEVDOCS_ENABLED_FILETYPES =<< trim END
 END
 
 " Interface {{{1
-fu doc#mapping#main(type) abort "{{{2
+fu doc#mapping#main(type = '') abort "{{{2
     let cnt = v:count
     " Make tests on:{{{
     "
@@ -292,7 +292,7 @@ fu s:use_pydoc() abort "{{{2
     exe 'new ' .. tempname()
     call setline(1, doc)
     setl bh=delete bt=nofile nobl noswf noma ro
-    nmap <buffer><nowait><silent> q <plug>(my_quit)
+    nmap <buffer><nowait> q <plug>(my_quit)
 endfu
 
 fu s:use_devdoc() abort "{{{2
