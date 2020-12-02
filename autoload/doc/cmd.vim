@@ -41,7 +41,7 @@ fu doc#cmd#ctlseqs() abort "{{{2
         exe 'noswapfile sp +1 ' .. s:PATH_TO_CTLSEQS
     endif
     if expand('%:t') is# 'ctlseqs.txt.gz'
-        nno <buffer><expr><nowait><silent> q reg_recording() != '' ? 'q' : ':<c-u>q!<cr>'
+        nno <buffer><expr><nowait> q reg_recording() != '' ? 'q' : '<cmd>q!<cr>'
     endif
 endfu
 
@@ -52,7 +52,7 @@ fu doc#cmd#info(topic) abort "{{{2
     " the filetype needs to be `info`, otherwise `doc#mapping#main` would return
     " too early when there is a pattern to search
     setl ft=info bh=delete bt=nofile nobl noswf nowrap
-    nno <buffer><expr><nowait><silent> q reg_recording() != '' ? 'q' : ':<c-u>q<cr>'
+    nno <buffer><expr><nowait> q reg_recording() != '' ? 'q' : '<cmd>q<cr>'
 endfu
 
 fu doc#cmd#doc(...) abort "{{{2

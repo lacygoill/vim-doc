@@ -5,7 +5,7 @@ let g:autoloaded_doc#mapping = 1
 
 " Init {{{1
 
-import {Catch, GetSelection} from 'lg.vim'
+import {Catch, GetSelectionText} from 'lg.vim'
 
 const s:DEVDOCS_ENABLED_FILETYPES =<< trim END
     bash
@@ -136,7 +136,7 @@ endfu
 " Core {{{1
 fu s:get_cmd(type) abort "{{{2
     if a:type is# 'vis'
-        let cmd = s:GetSelection()->join("\n")
+        let cmd = s:GetSelectionText()->join("\n")
     else
         let line = getline('.')
         let cmd_pat =
