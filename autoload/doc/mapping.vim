@@ -119,7 +119,7 @@ fu doc#mapping#main(type = '') abort "{{{2
     " In that case, when parsing the command, we must not *stop* at this slash.
     " Same thing when parsing the offset: we must not *start* at this slash.
     "}}}
-    let [cmd, topic] = matchlist(cmd, '\(.\{-}\)\%(\%(:h\s\+\)\@<!\(/.*\)\|$\)')[1:2]
+    let [cmd, topic] = matchlist(cmd, '\(.\{-}\)\%(\%(:h\s\+\)\@<!\(/.*\)\|$\)')[1 : 2]
     exe cmd
     " `exe ... cmd` could fail without raising a real Vim error, e.g. `:Man not_a_cmd`.
     " In such a case, we don't want the cursor to move.
@@ -264,6 +264,28 @@ fu s:use_manpage(name, cnt) abort "{{{2
         " not a real error, so you can't catch it.
         "}}}
         exe cmd
+    catch /^Vim\%((\a\+)\)\=:E492:/
+        " When can that happen?{{{
+        "
+        " Write this in a markdown file:
+        "
+        "     blah ``:h vim9 /`=``.
+        "                   ^----^
+        "                   press `K` on any of these characters
+        "}}}
+        " What's the solution?{{{
+        "
+        " Avoid backticks *inside* your codespans.
+        "}}}
+        " FIXME: Could we better handle this?{{{
+        "
+        " I think the root cause of the issue comes from `s:get_codespan()`.
+        " It's tricky to  extract the body of a codespan  when it's delimited by
+        " *multiple* backticks.  Our current code is not designed to support this.
+        "}}}
+        echohl ErrorMsg
+        echo 'Something went wrong.  Is there some backtick near your cursor?'
+        echohl NONE
     endtry
 endfu
 
@@ -333,7 +355,7 @@ fu s:set_search_register(topic) abort "{{{2
         call setreg('/', [matchstr(a:topic, '.*/;/\zs.*')], 'c')
     " remove leading `/`
     else
-        call setreg('/', [a:topic[1:]], 'c')
+        call setreg('/', [a:topic[1 :]], 'c')
     endif
 endfu
 
