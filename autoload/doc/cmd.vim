@@ -1,63 +1,70 @@
-" Init {{{1
+vim9 noclear
 
-" Could we get it programmatically?{{{
-"
-" You could use `findfile()`:
-"
-"     :echo findfile('ctlseqs.txt.gz', '/usr/share/**')
-"                                                  ^^
-"                                                  could append a small number to limit the recursiveness
-"                                                  and make the command faster
-" Or `find(1)`:
-"
-"     :echo system('find /usr -path "*/xterm/*ctlseqs.txt.gz"')->trim("\n", 2)
-"
-" But those commands take some time.
-" Not sure it's worth it for the moment.
-"}}}
-const s:PATH_TO_CTLSEQS = '/usr/share/doc/xterm/ctlseqs.txt.gz'
+if exists('loaded') | finish | endif
+var loaded = true
 
-" Interface {{{1
-fu doc#cmd#ch(shell_cmd) abort "{{{2
-    if a:shell_cmd == ''
-        let cmd = getline('.')
+# Init {{{1
+
+# Could we get it programmatically?{{{
+#
+# You could use `findfile()`:
+#
+#     :echo findfile('ctlseqs.txt.gz', '/usr/share/**')
+#                                                  ^^
+#                                                  could append a small number to limit the recursiveness
+#                                                  and make the command faster
+# Or `find(1)`:
+#
+#     :echo system('find /usr -path "*/xterm/*ctlseqs.txt.gz"')->trim("\n", 2)
+#
+# But those commands take some time.
+# Not sure it's worth it for the moment.
+#}}}
+const PATH_TO_CTLSEQS = '/usr/share/doc/xterm/ctlseqs.txt.gz'
+
+# Interface {{{1
+def doc#cmd#ch(shell_cmd: string) #{{{2
+    var cmd: string
+    if shell_cmd == ''
+        cmd = getline('.')
     else
-        let cmd = a:shell_cmd
+        cmd = shell_cmd
     endif
-    " The bang suppresses an error in case we've visually a command with an unterminated string:{{{
-    "
-    "     awk '{print $1}'
-    "     ^-------^
-    "     selection; the closing quote is missing
-    "}}}
-    sil! call systemlist('ch ' .. cmd .. ' 2>/dev/null')->setreg('o', 'c')
+    # The bang suppresses an error in case we've visually a command with an unterminated string:{{{
+    #
+    #     awk '{print $1}'
+    #     ^-------^
+    #     selection; the closing quote is missing
+    #}}}
+    sil! systemlist('ch ' .. cmd .. ' 2>/dev/null')->setreg('o', 'c')
     echo @o
-endfu
+enddef
 
-fu doc#cmd#ctlseqs() abort "{{{2
-    if s:ctlseqs_file_is_already_displayed()
-        call s:focus_ctlseqs_window()
+def doc#cmd#ctlseqs() #{{{2
+    if CtlseqsFileIsAlreadyDisplayed()
+        FocusCtlseqsWindow()
     else
-        exe 'noswapfile sp +1 ' .. s:PATH_TO_CTLSEQS
+        exe 'noswapfile sp +1 ' .. PATH_TO_CTLSEQS
     endif
-    if expand('%:t') is# 'ctlseqs.txt.gz'
+    if expand('%:t') == 'ctlseqs.txt.gz'
         nno <buffer><expr><nowait> q reg_recording() != '' ? 'q' : '<cmd>q!<cr>'
     endif
-endfu
+enddef
 
-fu doc#cmd#info(topic) abort "{{{2
+def doc#cmd#info(topic: string) #{{{2
     new
-    exe '.!info ' .. a:topic
+    exe ':.!info ' .. topic
     if bufname('%') != '' | return | endif
-    " the filetype needs to be `info`, otherwise `doc#mapping#main` would return
-    " too early when there is a pattern to search
+    # the filetype needs to be `info`, otherwise `doc#mapping#main` would return
+    # too early when there is a pattern to search
     setl ft=info bh=delete bt=nofile nobl noswf nowrap
     nno <buffer><expr><nowait> q reg_recording() != '' ? 'q' : '<cmd>q<cr>'
-endfu
+enddef
 
-fu doc#cmd#doc(...) abort "{{{2
-    if !a:0 || (a:1 is# '--help' || a:1 is# '-h')
-        let usage =<< trim END
+def doc#cmd#doc(keyword = '', filetype = '') #{{{2
+    if keyword == '' && filetype == ''
+        || (keyword == '--help' || keyword == '-h')
+        var usage =<< trim END
             usage:
                 :Doc div        keyword 'div', scoped with current filetype
                 :Doc div html   keyword 'div', scoped with html
@@ -70,29 +77,31 @@ fu doc#cmd#doc(...) abort "{{{2
         return
     endif
 
-    let cmd = 'xdg-open'
-    " For the syntax of the query, see this link:
-    " https://devdocs.io/help#search
-    let url = 'http://devdocs.io/?q='
+    var cmd = 'xdg-open'
+    # For the syntax of the query, see this link:
+    # https://devdocs.io/help#search
+    var url = 'http://devdocs.io/?q='
 
-    let args = a:0 == 1
-        \ ? url .. &ft .. ' ' .. a:1
-        \ : url .. a:2 .. ' ' .. a:1
+    var args = filetype == ''
+        ? url .. &ft .. ' ' .. keyword
+        : url .. filetype .. ' ' .. keyword
 
-    sil call system(cmd .. ' ' .. shellescape(args))
-endfu
-"}}}1
-" Core {{{1
-fu s:focus_ctlseqs_window() abort "{{{2
-    let bufnr = bufnr('ctlseqs\.txt.\gz$')
-    let winids = win_findbuf(bufnr)
-    let tabpagenr = tabpagenr()
-    call filter(winids, {_, v -> getwininfo(v)[0].tabnr == tabpagenr})
-    call win_gotoid(winids[0])
-endfu
-"}}}1
-" Utilities {{{1
-fu s:ctlseqs_file_is_already_displayed() abort "{{{2
-    return tabpagebuflist()->map({_, v -> bufname(v)})->match('ctlseqs\.txt\.gz$') != -1
-endfu
+    sil system(cmd .. ' ' .. shellescape(args))
+enddef
+#}}}1
+# Core {{{1
+def FocusCtlseqsWindow() #{{{2
+    var bufnr = bufnr('ctlseqs\.txt.\gz$')
+    var winids = win_findbuf(bufnr)
+    var tabpagenr = tabpagenr()
+    filter(winids, (_, v) => getwininfo(v)[0].tabnr == tabpagenr)
+    win_gotoid(winids[0])
+enddef
+#}}}1
+# Utilities {{{1
+def CtlseqsFileIsAlreadyDisplayed(): bool #{{{2
+    return tabpagebuflist()
+        ->mapnew((_, v) => bufname(v))
+        ->match('ctlseqs\.txt\.gz$') != -1
+enddef
 
