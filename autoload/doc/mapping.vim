@@ -7,7 +7,7 @@ var loaded = true
 
 import {Catch, GetSelectionText} from 'lg.vim'
 
-const DEVDOCS_ENABLED_FILETYPES =<< trim END
+const DEVDOCS_ENABLED_FILETYPES: list<string> =<< trim END
     bash
     c
     html
@@ -18,7 +18,7 @@ END
 
 # Interface {{{1
 def doc#mapping#main(type = '') #{{{2
-    var cnt = v:count
+    var cnt: number = v:count
     # Make tests on:{{{
     #
     # foo `man bash` bar
@@ -43,7 +43,7 @@ def doc#mapping#main(type = '') #{{{2
     #     CSI ? Pm h/;/Ps = 2 0 0 4
     #     $ ls -larth
     #}}}
-    var cmd = GetCmd(type)
+    var cmd: string = GetCmd(type)
     if cmd == ''
         # Why do some filetypes need to be handled specially?  Why can't they be handled via `'kp'`?{{{
         #
@@ -141,6 +141,7 @@ def doc#mapping#main(type = '') #{{{2
     # E486, E874, ...
     catch
         Catch()
+        return
     endtry
     SetSearchRegister(topic)
 enddef
@@ -151,15 +152,15 @@ def GetCmd(type: string): string #{{{2
     if type == 'vis'
         cmd = GetSelectionText()->join("\n")
     else
-        var line = getline('.')
-        var cmd_pat =
+        var line: string = getline('.')
+        var cmd_pat: string =
               '\m\C\s*\zs\%('
             ..    ':h\|info\|man\|CSI\|OSC\|DCS\|'
             # random shell command for which we want a description via `ch`
             ..    '\$'
             .. '\)\s.*'
-        var codespan = GetCodespan(line, cmd_pat)
-        var codeblock = GetCodeblock(line, cmd_pat)
+        var codespan: string = GetCodespan(line, cmd_pat)
+        var codeblock: string = GetCodeblock(line, cmd_pat)
         if codeblock == '' && codespan == '' | cmd = ''
         # if the  function finds a codespan  *and* a codeblock, we  want to give
         # the priority to the latter
@@ -179,9 +180,9 @@ def GetCmd(type: string): string #{{{2
 enddef
 
 def GetCodespan(line: string, cmd_pat: string): string #{{{2
-    var cml = GetCml()
-    var col = col('.')
-    var pat =
+    var cml: string = GetCml()
+    var col: number = col('.')
+    var pat: string =
         # we are on a commented line
            '\%(^\s*\V' .. cml .. '\m.*\)\@<='
         .. '\%(^\%('
@@ -203,7 +204,7 @@ def GetCodespan(line: string, cmd_pat: string): string #{{{2
         ..  '\)'
 
     # extract codespan from the line
-    var codespan = matchstr(line, pat)
+    var codespan: string = matchstr(line, pat)
     # remove surrounding backticks
     codespan = trim(codespan, '`')
     # extract command from the text
@@ -219,16 +220,16 @@ def GetCodespan(line: string, cmd_pat: string): string #{{{2
 enddef
 
 def GetCodeblock(line: string, cmd_pat: string): string #{{{2
-    var cml = GetCml()
-    var n = &ft == 'markdown' ? 4 : 5
-    var pat = '^\s*\V' .. cml .. '\m \{' .. n .. '}' .. cmd_pat
-    var codeblock = matchstr(line, pat)
+    var cml: string = GetCml()
+    var n: number = &ft == 'markdown' ? 4 : 5
+    var pat: string = '^\s*\V' .. cml .. '\m \{' .. n .. '}' .. cmd_pat
+    var codeblock: string = matchstr(line, pat)
     return codeblock
 enddef
 
 def GetCword(): string #{{{2
-    var isk_save = &l:isk
-    var bufnr = bufnr('%')
+    var isk_save: string = &l:isk
+    var bufnr: number = bufnr('%')
     var cword: string
     try
         setl isk+=-
@@ -273,8 +274,8 @@ def UseManpage(name: string, cnt: number) #{{{2
         Error(':Man command is not installed')
         return
     endif
-    var cword = GetCword()
-    var cmd = printf('Man %s %s', cnt ? cnt : '', cword)
+    var cword: string = GetCword()
+    var cmd: string = printf('Man %s %s', cnt ? cnt : '', cword)
     if cnt
         exe cmd
         return
@@ -282,7 +283,7 @@ def UseManpage(name: string, cnt: number) #{{{2
     try
         # first try to look for the current word in the bash/awk manpage
         exe 'Man ' .. name
-        var pat = '\m\C^\s*\zs\<' .. cword .. '\>\ze\%(\s\|$\)'
+        var pat: string = '\m\C^\s*\zs\<' .. cword .. '\>\ze\%(\s\|$\)'
         exe ':/' .. pat
         setreg('/', [pat], 'c')
     catch /^Vim\%((\a\+)\)\=:E486:/
@@ -321,12 +322,13 @@ def UseManpage(name: string, cnt: number) #{{{2
 enddef
 
 def UseKp(cnt: number) #{{{2
-    var cword = GetCword()
+    var cword: string = GetCword()
     if &l:kp[0] == ':'
         try
             exe printf('%s %s %s', &l:kp, cnt ? cnt : '', cword)
         catch /^Vim\%((\a\+)\)\=:\%(E149\|E434\):/
             Catch()
+            return
         endtry
     else
         exe printf('!%s %s %s', &l:kp, cnt ? cnt : '', shellescape(cword, true))
@@ -334,8 +336,8 @@ def UseKp(cnt: number) #{{{2
 enddef
 
 def UsePydoc() #{{{2
-    var cword = GetCword()
-    sil var doc = systemlist('pydoc ' .. shellescape(cword))
+    var cword: string = GetCword()
+    sil var doc: list<string> = systemlist('pydoc ' .. shellescape(cword))
     if get(doc, 0, '') =~ '^no Python documentation found for'
         echo doc[0]
         return
@@ -347,14 +349,14 @@ def UsePydoc() #{{{2
 enddef
 
 def UseDevdoc() #{{{2
-    var cword = GetCword()
+    var cword: string = GetCword()
     exe 'Doc ' .. cword .. ' ' .. &ft
 enddef
 
 def VimifyCmd(arg_cmd: string): string #{{{2
-    var cmd = arg_cmd
+    var cmd: string = arg_cmd
     if cmd =~ '^\%(info\|man\)\s'
-        var Rep = (m) => m[0] == 'info' ? 'Info' : 'Man'
+        var Rep: func = (m: list<string>): string => m[0] == 'info' ? 'Info' : 'Man'
         cmd = substitute(cmd, '^\%(info\|man\)', Rep, '')
     elseif cmd =~ '^\%(CSI\|OSC\|DCS\)\s'
         cmd = substitute(cmd, '^', 'CtlSeqs /', '')
@@ -389,23 +391,23 @@ def SetSearchRegister(topic: string) #{{{2
 enddef
 
 def Helptopic(): string #{{{2
-    var line = getline('.')
-    var col = col('.')
+    var line: string = getline('.')
+    var col: number = col('.')
     var pat_pre: string
     if line[col - 1] =~ '\k'
         pat_pre = '.*\ze\<\k*\%' .. col .. 'c'
     else
         pat_pre = '.*\%' .. col .. 'c.'
     endif
-    var pat_post = '\%' .. col .. 'c\k*\>\zs.*'
-    var pre = matchstr(line, pat_pre)
-    var post = matchstr(line, pat_post)
+    var pat_post: string = '\%' .. col .. 'c\k*\>\zs.*'
+    var pre: string = matchstr(line, pat_pre)
+    var post: string = matchstr(line, pat_post)
 
-    var syntax_item = synstack('.', col('.'))
+    var syntax_item: string = synstack('.', col('.'))
         ->mapnew((_, v) => synIDattr(v, 'name'))
         ->reverse()
         ->get(0, '')
-    var cword = expand('<cword>')
+    var cword: string = expand('<cword>')
 
     if syntax_item == 'markdownCodeBlock'
         return cword
@@ -455,7 +457,7 @@ def Error(msg: string) #{{{2
 enddef
 
 def OnCommentedLine(): bool #{{{2
-    var cml = GetCml()
+    var cml: string = GetCml()
     if cml == ''
         return false
     endif

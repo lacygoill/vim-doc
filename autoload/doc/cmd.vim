@@ -20,7 +20,7 @@ var loaded = true
 # But those commands take some time.
 # Not sure it's worth it for the moment.
 #}}}
-const PATH_TO_CTLSEQS = '/usr/share/doc/xterm/ctlseqs.txt.gz'
+const PATH_TO_CTLSEQS: string = '/usr/share/doc/xterm/ctlseqs.txt.gz'
 
 # Interface {{{1
 def doc#cmd#ch(shell_cmd: string) #{{{2
@@ -54,7 +54,9 @@ enddef
 def doc#cmd#info(topic: string) #{{{2
     new
     exe ':.!info ' .. topic
-    if bufname('%') != '' | return | endif
+    if bufname('%') != ''
+        return
+    endif
     # the filetype needs to be `info`, otherwise `doc#mapping#main` would return
     # too early when there is a pattern to search
     setl ft=info bh=delete bt=nofile nobl noswf nowrap
@@ -64,7 +66,7 @@ enddef
 def doc#cmd#doc(keyword = '', filetype = '') #{{{2
     if keyword == '' && filetype == ''
         || (keyword == '--help' || keyword == '-h')
-        var usage =<< trim END
+        var usage: list<string> =<< trim END
             usage:
                 :Doc div        keyword 'div', scoped with current filetype
                 :Doc div html   keyword 'div', scoped with html
@@ -77,12 +79,12 @@ def doc#cmd#doc(keyword = '', filetype = '') #{{{2
         return
     endif
 
-    var cmd = 'xdg-open'
+    var cmd: string = 'xdg-open'
     # For the syntax of the query, see this link:
     # https://devdocs.io/help#search
-    var url = 'http://devdocs.io/?q='
+    var url: string = 'http://devdocs.io/?q='
 
-    var args = filetype == ''
+    var args: string = filetype == ''
         ? url .. &ft .. ' ' .. keyword
         : url .. filetype .. ' ' .. keyword
 
@@ -91,9 +93,9 @@ enddef
 #}}}1
 # Core {{{1
 def FocusCtlseqsWindow() #{{{2
-    var bufnr = bufnr('ctlseqs\.txt.\gz$')
-    var winids = win_findbuf(bufnr)
-    var tabpagenr = tabpagenr()
+    var bufnr: number = bufnr('ctlseqs\.txt.\gz$')
+    var winids: list<number> = win_findbuf(bufnr)
+    var tabpagenr: number = tabpagenr()
     filter(winids, (_, v) => getwininfo(v)[0].tabnr == tabpagenr)
     win_gotoid(winids[0])
 enddef
