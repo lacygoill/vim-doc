@@ -104,6 +104,6 @@ enddef
 def CtlseqsFileIsAlreadyDisplayed(): bool #{{{2
     return tabpagebuflist()
         ->mapnew((_, v) => bufname(v))
-        ->match('ctlseqs\.txt\.gz$') != -1
+        ->match('ctlseqs\.txt\.gz$') >= 0
 enddef
 

@@ -7,9 +7,11 @@ var loaded = true
 
 import {Catch, GetSelectionText} from 'lg.vim'
 
+# The filetype of a header file (`.h`) is `cpp`.
 const DEVDOCS_ENABLED_FILETYPES: list<string> =<< trim END
     bash
     c
+    cpp
     html
     css
     lua
@@ -443,11 +445,11 @@ enddef
 def In(syngroup: string): bool #{{{2
     return synstack('.', col('.'))
         ->mapnew((_, v) => synIDattr(v, 'name'))
-        ->match('\c' .. syngroup) != -1
+        ->match('\c' .. syngroup) >= 0
 enddef
 
 def FiletypeIsSpecial(): bool #{{{2
-    return index(['awk', 'markdown', 'python', 'sh', 'tmux', 'vim'], &ft) != -1
+    return index(['awk', 'markdown', 'python', 'sh', 'tmux', 'vim'], &ft) >= 0
 enddef
 
 def Error(msg: string) #{{{2
@@ -465,7 +467,7 @@ def OnCommentedLine(): bool #{{{2
 enddef
 
 def FiletypeEnabledOnDevdocs(): bool #{{{2
-    return index(DEVDOCS_ENABLED_FILETYPES, &ft) != -1
+    return index(DEVDOCS_ENABLED_FILETYPES, &ft) >= 0
 enddef
 
 def GetCml(): string #{{{2
