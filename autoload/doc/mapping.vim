@@ -5,7 +5,10 @@ var loaded = true
 
 # Init {{{1
 
-import {Catch, GetSelectionText} from 'lg.vim'
+import {
+    Catch,
+    GetSelectionText,
+    } from 'lg.vim'
 
 # The filetype of a header file (`.h`) is `cpp`.
 const DEVDOCS_ENABLED_FILETYPES: list<string> =<< trim END
@@ -406,7 +409,7 @@ def Helptopic(): string #{{{2
     var post: string = matchstr(line, pat_post)
 
     var syntax_item: string = synstack('.', col('.'))
-        ->mapnew((_, v) => synIDattr(v, 'name'))
+        ->mapnew((_, v: number): string => synIDattr(v, 'name'))
         ->reverse()
         ->get(0, '')
     var cword: string = expand('<cword>')
@@ -444,7 +447,7 @@ enddef
 # Utilities {{{1
 def In(syngroup: string): bool #{{{2
     return synstack('.', col('.'))
-        ->mapnew((_, v) => synIDattr(v, 'name'))
+        ->mapnew((_, v: number): string => synIDattr(v, 'name'))
         ->match('\c' .. syngroup) >= 0
 enddef
 
