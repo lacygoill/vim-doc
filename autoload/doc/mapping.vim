@@ -159,7 +159,7 @@ def GetCmd(type: string): string #{{{2
     else
         var line: string = getline('.')
         var cmd_pat: string =
-              '\m\C\s*\zs\%('
+              '\C\s*\zs\%('
             ..    ':h\|info\|man\|CSI\|OSC\|DCS\|'
             # random shell command for which we want a description via `ch`
             ..    '\$'
@@ -173,15 +173,15 @@ def GetCmd(type: string): string #{{{2
         elseif codespan != ''  | cmd = codespan
         endif
     endif
-    # Ignore everything after a bar.{{{
-    #
-    # Useful to  avoid an  error when  pressing `K`  while visually  selecting a
-    # shell command containing a pipe.
-    # Also,  we don't  want Vim  to  interpret what  follows  the bar  as an  Ex
-    # command; it could be anything, too dangerous.
-    #}}}
-    cmd = substitute(cmd, '.\{-}\zs|.*', '', '')
     return cmd
+        # Ignore everything after a bar.{{{
+        #
+        # Useful to avoid an error when  pressing `K` while visually selecting a
+        # shell command containing a pipe.
+        # Also, we  don't want Vim  to interpret what follows  the bar as  an Ex
+        # command; it could be anything, too dangerous.
+        #}}}
+        ->substitute('.\{-}\zs|.*', '', '')
 enddef
 
 def GetCodespan(line: string, cmd_pat: string): string #{{{2
@@ -189,7 +189,7 @@ def GetCodespan(line: string, cmd_pat: string): string #{{{2
     var col: number = col('.')
     var pat: string =
         # we are on a commented line
-           '\%(^\s*\V' .. cml .. '\m.*\)\@<='
+           '\%(^\s*' .. cml .. '.*\)\@<='
         .. '\%(^\%('
         # there can be a codespan before
         ..         '`[^`]*`'
@@ -227,7 +227,7 @@ enddef
 def GetCodeblock(line: string, cmd_pat: string): string #{{{2
     var cml: string = GetCml()
     var n: number = &ft == 'markdown' ? 4 : 5
-    var pat: string = '^\s*\V' .. cml .. '\m \{' .. n .. '}' .. cmd_pat
+    var pat: string = '^\s*' .. cml .. ' \{' .. n .. '}' .. cmd_pat
     var codeblock: string = matchstr(line, pat)
     return codeblock
 enddef
@@ -288,7 +288,7 @@ def UseManpage(name: string, cnt: number) #{{{2
     try
         # first try to look for the current word in the bash/awk manpage
         exe 'Man ' .. name
-        var pat: string = '\m\C^\s*\zs\<' .. cword .. '\>\ze\%(\s\|$\)'
+        var pat: string = '^\C\s*\zs\<' .. cword .. '\>\ze\%(\s\|$\)'
         exe ':/' .. pat
         setreg('/', [pat], 'c')
     catch /^Vim\%((\a\+)\)\=:E486:/
@@ -362,11 +362,11 @@ def VimifyCmd(arg_cmd: string): string #{{{2
     var cmd: string = arg_cmd
     if cmd =~ '^\%(info\|man\)\s'
         var Rep: func = (m: list<string>): string => m[0] == 'info' ? 'Info' : 'Man'
-        cmd = substitute(cmd, '^\%(info\|man\)', Rep, '')
+        cmd = cmd->substitute('^\%(info\|man\)', Rep, '')
     elseif cmd =~ '^\%(CSI\|OSC\|DCS\)\s'
-        cmd = substitute(cmd, '^', 'CtlSeqs /', '')
+        cmd = cmd->substitute('^', 'CtlSeqs /', '')
     elseif cmd =~ '^\$\s'
-        cmd = substitute(cmd, '^\$', 'Ch', '')
+        cmd = cmd->substitute('^\$', 'Ch', '')
     elseif cmd =~ '^:h\s'
         # nothing to do; `:h` is already a Vim command
     else
@@ -466,7 +466,7 @@ def OnCommentedLine(): bool #{{{2
     if cml == ''
         return false
     endif
-    return getline('.') =~ '^\s*\V' .. cml
+    return getline('.') =~ '^\s*' .. cml
 enddef
 
 def FiletypeEnabledOnDevdocs(): bool #{{{2
@@ -478,11 +478,11 @@ def GetCml(): string #{{{2
     if &ft == 'markdown'
         cml = ''
     elseif &ft == 'vim'
-        cml = '\m["#]\V'
+        cml = '["#]'
     else
         cml = matchstr(&l:cms, '\S*\ze\s*%s')->escape('\')
     endif
-    return cml
+    return '\V' .. cml .. '\m'
 enddef
 
 def VisualSelectionContainsShellCode(type: string): bool #{{{2

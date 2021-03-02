@@ -96,8 +96,10 @@ def FocusCtlseqsWindow() #{{{2
     var bufnr: number = bufnr('ctlseqs\.txt.\gz$')
     var winids: list<number> = win_findbuf(bufnr)
     var tabpagenr: number = tabpagenr()
-    filter(winids, (_, v: number): bool => getwininfo(v)[0]['tabnr'] == tabpagenr)
-    win_gotoid(winids[0])
+    winids
+        ->filter((_, v: number): bool => getwininfo(v)[0]['tabnr'] == tabpagenr)
+        ->get(0)
+        ->win_gotoid()
 enddef
 #}}}1
 # Utilities {{{1
