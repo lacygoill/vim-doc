@@ -398,8 +398,9 @@ enddef
 def Helptopic(): string #{{{2
     var line: string = getline('.')
     var col: number = col('.')
+    var charcol: number = charcol('.')
     var pat_pre: string
-    if line[col - 1] =~ '\k'
+    if line[charcol - 1] =~ '\k'
         pat_pre = '.*\ze\<\k*\%' .. col .. 'c'
     else
         pat_pre = '.*\%' .. col .. 'c.'
@@ -408,7 +409,7 @@ def Helptopic(): string #{{{2
     var pre: string = matchstr(line, pat_pre)
     var post: string = matchstr(line, pat_post)
 
-    var syntax_item: string = synstack('.', col('.'))
+    var syntax_item: string = synstack('.', col)
         ->mapnew((_, v: number): string => synIDattr(v, 'name'))
         ->reverse()
         ->get(0, '')
@@ -480,9 +481,9 @@ def GetCml(): string #{{{2
     elseif &ft == 'vim'
         cml = '["#]'
     else
-        cml = matchstr(&l:cms, '\S*\ze\s*%s')->escape('\')
+        cml = '\V' .. matchstr(&l:cms, '\S*\ze\s*%s')->escape('\') .. '\m'
     endif
-    return '\V' .. cml .. '\m'
+    return cml
 enddef
 
 def VisualSelectionContainsShellCode(type: string): bool #{{{2
