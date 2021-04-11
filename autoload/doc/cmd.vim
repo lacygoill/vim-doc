@@ -75,7 +75,7 @@ def doc#cmd#doc(keyword = '', filetype = '') #{{{2
             make sure that the documentation for the relevant language is enabled on:
                 https://devdocs.io/
         END
-        echo join(usage, "\n")
+        echo usage->join("\n")
         return
     endif
 

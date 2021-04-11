@@ -8,7 +8,7 @@ var loaded = true
 import {
     Catch,
     GetSelectionText,
-    } from 'lg.vim'
+} from 'lg.vim'
 
 # The filetype of a header file (`.h`) is `cpp`.
 const DEVDOCS_ENABLED_FILETYPES: list<string> =<< trim END
@@ -211,7 +211,7 @@ def GetCodespan(line: string, cmd_pat: string): string #{{{2
     # extract codespan from the line
     var codespan: string = matchstr(line, pat)
     # remove surrounding backticks
-    codespan = trim(codespan, '`')
+    codespan = codespan->trim('`')
     # extract command from the text
     # This serves 2 purposes.{{{
     #
