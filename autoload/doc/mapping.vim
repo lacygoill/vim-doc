@@ -330,7 +330,7 @@ def UseKp(cnt: number) #{{{2
     var cword: string = GetCword()
     if &l:kp[0] == ':'
         try
-            exe printf('%s %s %s', &l:kp, cnt ? cnt : '', cword)
+            exe printf('%s %s %s', &l:kp, cnt != 0 ? cnt : '', cword)
         catch /^Vim\%((\a\+)\)\=:\%(E149\|E434\):/
             Catch()
             return
