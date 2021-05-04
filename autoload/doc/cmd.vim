@@ -85,7 +85,7 @@ def doc#cmd#doc(keyword = '', filetype = '') #{{{2
     var url: string = 'http://devdocs.io/?q='
 
     var args: string = filetype == ''
-        ? url .. &ft .. ' ' .. keyword
+        ? url .. &filetype .. ' ' .. keyword
         : url .. filetype .. ' ' .. keyword
 
     sil system(cmd .. ' ' .. shellescape(args))

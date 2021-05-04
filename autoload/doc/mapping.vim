@@ -142,7 +142,7 @@ def doc#mapping#main(type = '') #{{{2
         return
     endif
     try
-        exe ':' .. topic
+        topic->trim('/', 0)->search('c')
     # E486, E874, ...
     catch
         Catch()
@@ -209,7 +209,7 @@ def GetCodespan(line: string, cmd_pat: string): string #{{{2
         ..  '\)'
 
     # extract codespan from the line
-    var codespan: string = matchstr(line, pat)
+    var codespan: string = line->matchstr(pat)
     # remove surrounding backticks
     codespan = codespan->trim('`')
     # extract command from the text
@@ -220,15 +220,15 @@ def GetCodespan(line: string, cmd_pat: string): string #{{{2
     # Make  sure the text does  contain a command  for which our plugin  can find
     # some documentation.
     #}}}
-    codespan = matchstr(codespan, '^' .. cmd_pat)
+    codespan = codespan->matchstr('^' .. cmd_pat)
     return codespan
 enddef
 
 def GetCodeblock(line: string, cmd_pat: string): string #{{{2
     var cml: string = GetCml()
-    var n: number = &ft == 'markdown' ? 4 : 5
+    var n: number = &filetype == 'markdown' ? 4 : 5
     var pat: string = '^\s*' .. cml .. ' \{' .. n .. '}' .. cmd_pat
-    var codeblock: string = matchstr(line, pat)
+    var codeblock: string = line->matchstr(pat)
     return codeblock
 enddef
 
@@ -246,9 +246,9 @@ def GetCword(): string #{{{2
 enddef
 
 def HandleSpecialFiletype(cnt: number) #{{{2
-    if &ft == 'vim'
-        || &ft == 'markdown' && In('markdownHighlightvim')
-        || &ft == 'markdown' && getcwd() == $HOME .. '/wiki/vim'
+    if &filetype == 'vim'
+        || &filetype == 'markdown' && In('markdownHighlightvim')
+        || &filetype == 'markdown' && getcwd() == $HOME .. '/wiki/vim'
         # there may be no help tag for the current word
         try
             exe 'help ' .. Helptopic()
@@ -256,20 +256,20 @@ def HandleSpecialFiletype(cnt: number) #{{{2
             Catch()
             return
         endtry
-    elseif &ft == 'tmux'
+    elseif &filetype == 'tmux'
         try
             tmux#man()
         catch
             Catch()
             return
         endtry
-    elseif &ft == 'awk'
+    elseif &filetype == 'awk'
         UseManpage('awk', cnt)
-    elseif &ft == 'markdown'
+    elseif &filetype == 'markdown'
         UseManpage('markdown', cnt)
-    elseif &ft == 'python'
+    elseif &filetype == 'python'
         UsePydoc()
-    elseif &ft == 'sh'
+    elseif &filetype == 'sh'
         UseManpage('bash', cnt)
     endif
 enddef
@@ -355,7 +355,7 @@ enddef
 
 def UseDevdoc() #{{{2
     var cword: string = GetCword()
-    exe 'Doc ' .. cword .. ' ' .. &ft
+    exe 'Doc ' .. cword .. ' ' .. &filetype
 enddef
 
 def VimifyCmd(arg_cmd: string): string #{{{2
@@ -388,7 +388,7 @@ def SetSearchRegister(topic: string) #{{{2
     # Populate the search register with  the topic if it doesn't contain
     # any offset, or with the last offset otherwise.
     if topic =~ '/;/'
-        setreg('/', [matchstr(topic, '.*/;/\zs.*')], 'c')
+        setreg('/', [topic->matchstr('.*/;/\zs.*')], 'c')
     # remove leading `/`
     else
         setreg('/', [topic[1 :]], 'c')
@@ -406,8 +406,8 @@ def Helptopic(): string #{{{2
         pat_pre = '.*\%' .. col .. 'c.'
     endif
     var pat_post: string = '\%' .. col .. 'c\k*\>\zs.*'
-    var pre: string = matchstr(line, pat_pre)
-    var post: string = matchstr(line, pat_post)
+    var pre: string = line->matchstr(pat_pre)
+    var post: string = line->matchstr(pat_post)
 
     var syntax_item: string = synstack('.', col)
         ->mapnew((_, v: number): string => synIDattr(v, 'name'))
@@ -438,7 +438,7 @@ def Helptopic(): string #{{{2
         return 'v:' .. cword
     # `v:key`, `v:val`, `v:count`, ... (cursor on `v`)
     elseif cword == 'v' && post =~ ':\w\+'
-        return 'v' .. matchstr(post, ':\w\+')
+        return 'v' .. post->matchstr(':\w\+')
 
     else
         return cword
@@ -453,7 +453,7 @@ def In(syngroup: string): bool #{{{2
 enddef
 
 def FiletypeIsSpecial(): bool #{{{2
-    return index(['awk', 'markdown', 'python', 'sh', 'tmux', 'vim'], &ft) >= 0
+    return index(['awk', 'markdown', 'python', 'sh', 'tmux', 'vim'], &filetype) >= 0
 enddef
 
 def Error(msg: string) #{{{2
@@ -471,27 +471,27 @@ def OnCommentedLine(): bool #{{{2
 enddef
 
 def FiletypeEnabledOnDevdocs(): bool #{{{2
-    return index(DEVDOCS_ENABLED_FILETYPES, &ft) >= 0
+    return index(DEVDOCS_ENABLED_FILETYPES, &filetype) >= 0
 enddef
 
 def GetCml(): string #{{{2
     var cml: string
-    if &ft == 'markdown'
+    if &filetype == 'markdown'
         cml = ''
-    elseif &ft == 'vim'
+    elseif &filetype == 'vim'
         cml = '["#]'
     else
-        cml = '\V' .. matchstr(&l:cms, '\S*\ze\s*%s')->escape('\') .. '\m'
+        cml = '\V' .. &l:cms->matchstr('\S*\ze\s*%s')->escape('\') .. '\m'
     endif
     return cml
 enddef
 
 def VisualSelectionContainsShellCode(type: string): bool #{{{2
-    return type == 'vis' && &ft == 'sh' && !OnCommentedLine()
+    return type == 'vis' && &filetype == 'sh' && !OnCommentedLine()
 enddef
 
 def NotInDocumentationBuffer(): bool #{{{2
-    return index(['help', 'info', 'man'], &ft) == -1
+    return index(['help', 'info', 'man'], &filetype) == -1
         && expand('%:t') != 'ctlseqs.txt.gz'
 enddef
 
