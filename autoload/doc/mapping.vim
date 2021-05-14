@@ -142,7 +142,31 @@ def doc#mapping#main(type = '') #{{{2
         return
     endif
     try
-        topic->trim('/', 0)->search('c')
+        # Why the loop?{{{
+        #
+        # You cannot simply write:
+        #
+        #     topic->trim('/', 0)->search('c')
+        #
+        # It would not  be able to handle multiple line  specifiers separated by
+        # semicolons:
+        #
+        #     /foo/;/bar
+        #
+        # This syntax is only available in the range of an Ex command; see `:h :;`.
+        #
+        # ---
+        #
+        # Alternatively, we could just write:
+        #
+        #     exe ':' .. topic
+        #
+        # But, in  Vim9, I  try to  avoid `:exe`  as much  as possible,  in part
+        # because it suppress the compilation of the executed command.
+        #}}}
+        for line_spec in topic->trim('/', 0)->split('/;/')
+            search(line_spec, 'c')
+        endfor
     # E486, E874, ...
     catch
         Catch()
