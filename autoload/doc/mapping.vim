@@ -261,7 +261,12 @@ def GetCword(): string #{{{2
     var bufnr: number = bufnr('%')
     var cword: string
     try
-        setl isk+=-
+        # Including the parens can be useful for a possible manpage section number:{{{
+        #
+        #     run-mailcap(1)
+        #                ^ ^
+        #}}}
+        setl isk+=-,(,)
         cword = expand('<cword>')
     finally
         setbufvar(bufnr, '&isk', isk_save)
@@ -303,12 +308,24 @@ def UseManpage(name: string, cnt: number) #{{{2
         Error(':Man command is not installed')
         return
     endif
+
     var cword: string = GetCword()
-    var cmd: string = printf('Man %s %s', cnt ? cnt : '', cword)
-    if cnt
+    if cword =~ '([0-9a-z])$'
+        exe 'Man ' .. cword
+        return
+    endif
+
+    var cmd: string = printf('Man %s %s', cnt != 0 ? cnt : '', cword)
+    if cnt != 0
         exe cmd
         return
     endif
+
+    # there is no manpage for "markdown"
+    if &filetype == 'markdown'
+        return
+    endif
+
     try
         # first try to look for the current word in the bash/awk manpage
         exe 'Man ' .. name
