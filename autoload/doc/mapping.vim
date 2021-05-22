@@ -113,9 +113,9 @@ def doc#mapping#main(type = '') #{{{2
         #     enddef
         #
         #     Ch a"b
-        #     a~
+        #     a˜
         #     Ch a|b
-        #     a~
+        #     a˜
         #}}}
         cmd = escape(cmd, '"|')
         try
