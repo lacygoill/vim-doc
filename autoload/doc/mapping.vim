@@ -268,6 +268,10 @@ def GetCword(): string #{{{2
         #}}}
         setl isk+=-,(,)
         cword = expand('<cword>')
+        if cword !~ '^\w\+(\d\+)$'
+            setl isk-=(,)
+            cword = expand('<cword>')
+        endif
     finally
         setbufvar(bufnr, '&isk', isk_save)
     endtry
@@ -294,6 +298,13 @@ def HandleSpecialFiletype(cnt: number) #{{{2
         endtry
     elseif &filetype == 'awk'
         UseManpage('awk', cnt)
+    elseif &filetype == 'c'
+        # For `C`, the man pages in the third section of the manual are better than devdocs.io:{{{
+        #
+        #    - no need of an internet connection
+        #    - can search and copy text within Vim
+        #}}}
+        UseManpage('c', cnt)
     elseif &filetype == 'markdown'
         UseManpage('markdown', cnt)
     elseif &filetype == 'python'
@@ -315,14 +326,20 @@ def UseManpage(name: string, cnt: number) #{{{2
         return
     endif
 
-    var cmd: string = printf('Man %s %s', cnt != 0 ? cnt : '', cword)
+    var scnt: string
     if cnt != 0
+        scnt = cnt->string()
+    elseif &filetype == 'c'
+        scnt = '3'
+    endif
+    var cmd: string = printf('Man %s %s', scnt, cword)
+    if scnt != ''
         exe cmd
         return
     endif
 
-    # there is no manpage for "markdown"
-    if &filetype == 'markdown'
+    # there is no manpage for "markdown" or "C"
+    if &filetype == 'markdown' || &filetype == 'c'
         return
     endif
 
@@ -494,7 +511,15 @@ def In(syngroup: string): bool #{{{2
 enddef
 
 def FiletypeIsSpecial(): bool #{{{2
-    return index(['awk', 'markdown', 'python', 'sh', 'tmux', 'vim'], &filetype) >= 0
+    return index([
+        'awk',
+        'c',
+        'markdown',
+        'python',
+        'sh',
+        'tmux',
+        'vim'
+    ], &filetype) >= 0
 enddef
 
 def Error(msg: string) #{{{2
