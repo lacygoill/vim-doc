@@ -50,32 +50,31 @@ def doc#mapping#main(type = '') #{{{2
     #}}}
     var cmd: string = GetCmd(type)
     if cmd == ''
-        # Why do some filetypes need to be handled specially?  Why can't they be handled via `'kp'`?{{{
+        # Why do some filetypes need to be handled specially?  Why can't they be handled via `'keywordprg'`?{{{
         #
         # Because  we need  some special  logic which  would need  to be  hidden
         # behind custom  commands, and I  don't want to install  custom commands
         # just for that.
         #
         # It would  also make the  code more complex;  you would have  to update
-        # `b:undo_ftplugin`  to  reset `'kp'`  and  remove  the ad-hoc  command.
-        # Besides, the latter needs a specific signature (`-buffer`, `-nargs=1`,
-        # `<q-args>`, ...).
-        # And it would introduce an additional dependency (`vim-lg`) because you
-        # would  need  to move  `UseManpage()`  (and  copy `Error()`)  into  the
-        # latter.
+        # `b:undo_ftplugin`  to  reset  `'keywordprg'`  and  remove  the  ad-hoc
+        # command.  Besides,  the latter needs a  specific signature (`-buffer`,
+        # `-nargs=1`,  `<q-args>`, ...).  And it  would introduce  an additional
+        # dependency (`vim-lg`)  because you  would need to  move `UseManpage()`
+        # (and copy `Error()`) into the latter.
         #
         # ---
         #
         # There is  an additional benefit  in dealing here with  filetypes which
         # need a special logic.
-        # We can tweak `'isk'` more easily to include some characters (e.g. `-`)
-        # when looking for the word under the cursor.
+        # We  can tweak  `'iskeyword'` more  easily to  include some  characters
+        # (e.g. `-`) when looking for the word under the cursor.
         # It's easier here, because we only  have to write the code dealing with
-        # adding `-` to `'isk'` once; no code duplication.
+        # adding `-` to `'iskeyword'` once; no code duplication.
         #}}}
         if FiletypeIsSpecial()
             HandleSpecialFiletype(cnt)
-        elseif &l:kp != ''
+        elseif &l:keywordprg != ''
             UseKp(cnt)
         elseif !OnCommentedLine() && FiletypeEnabledOnDevdocs()
             UseDevdoc()
@@ -257,7 +256,7 @@ def GetCodeblock(line: string, cmd_pat: string): string #{{{2
 enddef
 
 def GetCword(): string #{{{2
-    var isk_save: string = &l:isk
+    var iskeyword_save: string = &l:iskeyword
     var bufnr: number = bufnr('%')
     var cword: string
     try
@@ -266,14 +265,14 @@ def GetCword(): string #{{{2
         #     run-mailcap(1)
         #                ^ ^
         #}}}
-        setl isk+=-,(,)
+        setl iskeyword+=-,(,)
         cword = expand('<cword>')
         if cword !~ '^\w\+(\d\+)$'
-            setl isk-=(,)
+            setl iskeyword-=(,)
             cword = expand('<cword>')
         endif
     finally
-        setbufvar(bufnr, '&isk', isk_save)
+        setbufvar(bufnr, '&iskeyword', iskeyword_save)
     endtry
     return cword
 enddef
@@ -284,7 +283,7 @@ def HandleSpecialFiletype(cnt: number) #{{{2
         || &filetype == 'markdown' && getcwd() == $HOME .. '/wiki/vim'
         # there may be no help tag for the current word
         try
-            exe 'help ' .. Helptopic()
+            exe 'help ' .. HelpTopic()
         catch
             Catch()
             return
@@ -386,15 +385,15 @@ enddef
 
 def UseKp(cnt: number) #{{{2
     var cword: string = GetCword()
-    if &l:kp[0] == ':'
+    if &l:keywordprg[0] == ':'
         try
-            exe printf('%s %s %s', &l:kp, cnt != 0 ? cnt : '', cword)
+            exe printf('%s %s %s', &l:keywordprg, cnt != 0 ? cnt : '', cword)
         catch /^Vim\%((\a\+)\)\=:\%(E149\|E434\):/
             Catch()
             return
         endtry
     else
-        exe printf('!%s %s %s', &l:kp, cnt ? cnt : '', shellescape(cword, true))
+        exe printf('!%s %s %s', &l:keywordprg, cnt ? cnt : '', shellescape(cword, true))
     endif
 enddef
 
@@ -406,8 +405,13 @@ def UsePydoc() #{{{2
         return
     endif
     exe 'new ' .. tempname()
-    setline(1, doc)
-    setl bh=delete bt=nofile nobl noswf noma ro
+    doc->setline(1)
+    &l:bufhidden = 'delete'
+    &l:buftype = 'nofile'
+    &l:buflisted = false
+    &l:swapfile = false
+    &l:modifiable = false
+    &l:readonly = true
     nmap <buffer><nowait> q <plug>(my_quit)
 enddef
 
@@ -453,7 +457,7 @@ def SetSearchRegister(topic: string) #{{{2
     endif
 enddef
 
-def Helptopic(): string #{{{2
+def HelpTopic(): string #{{{2
     var line: string = getline('.')
     var col: number = col('.')
     var charcol: number = charcol('.')
@@ -476,14 +480,18 @@ def Helptopic(): string #{{{2
     if syntax_item == 'markdownCodeBlock'
         return cword
     elseif syntax_item == 'vimFuncName'
+        || syntax_item == 'vim9BuiltinFuncName'
         return cword .. '()'
     elseif syntax_item == 'vimOption'
+        || syntax_item == 'vim9IsOption'
         return "'" .. cword .. "'"
     # `-bar`, `-nargs`, `-range`...
     elseif syntax_item == 'vimUserAttrbKey'
+        || syntax_item == 'vim9UserAttrbKey'
         return ':command-' .. cword
     # `<silent>`, `<unique>`, ...
     elseif syntax_item == 'vimMapModKey'
+        || syntax_item == 'vim9MapModKey'
         return ':map-<' .. cword
 
     # if the word under the cursor is  preceded by nothing, except maybe a colon
@@ -547,7 +555,7 @@ def GetCml(): string #{{{2
     elseif &filetype == 'vim'
         cml = '["#]'
     else
-        cml = '\V' .. &l:cms->matchstr('\S*\ze\s*%s')->escape('\') .. '\m'
+        cml = '\V' .. &l:commentstring->matchstr('\S*\ze\s*%s')->escape('\') .. '\m'
     endif
     return cml
 enddef

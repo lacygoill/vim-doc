@@ -59,7 +59,12 @@ def doc#cmd#info(topic: string) #{{{2
     endif
     # the filetype needs to be `info`, otherwise `doc#mapping#main` would return
     # too early when there is a pattern to search
-    setl ft=info bh=delete bt=nofile nobl noswf nowrap
+    &l:filetype = 'info'
+    &l:bufhidden = 'delete'
+    &l:buftype = 'nofile'
+    &l:buflisted = false
+    &l:swapfile = false
+    &l:wrap = false
     nno <buffer><expr><nowait> q reg_recording() != '' ? 'q' : '<cmd>q<cr>'
 enddef
 
