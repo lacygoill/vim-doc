@@ -480,7 +480,7 @@ def HelpTopic(): string #{{{2
     if syntax_item == 'markdownCodeBlock'
         return cword
     elseif syntax_item == 'vimFuncName'
-        || syntax_item == 'vim9BuiltinFuncName'
+        || syntax_item == 'vim9FuncNameBuiltin'
         return cword .. '()'
     elseif syntax_item == 'vimOption'
         || syntax_item == 'vim9IsOption'
