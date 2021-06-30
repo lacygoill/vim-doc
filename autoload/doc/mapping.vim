@@ -30,10 +30,10 @@ def doc#mapping#main(type = '') #{{{2
     # foo `man bash /keyword/;/running` bar
     # foo `info groff` bar
     # foo `info groff /difficult/;/confines` bar
-    # foo `:h :com` bar
-    # foo `:h :com /below/;/list` bar
-    # foo `:h /\@=` bar
-    # foo `:h /\@= /tricky/;/position` bar
+    # foo `:help :command` bar
+    # foo `:help :command /below/;/list` bar
+    # foo `:help /\@=` bar
+    # foo `:help /\@= /tricky/;/position` bar
     # foo `CSI ? Pm h/;/Ps = 2 0 0 4` bar
     # foo `$ ls -larth` bar
     #
@@ -41,10 +41,10 @@ def doc#mapping#main(type = '') #{{{2
     #     man bash /keyword/;/running
     #     info groff
     #     info groff /difficult/;/confines
-    #     :h :com
-    #     :h :com /below/;/list
-    #     :h /\@=
-    #     :h /\@= /tricky/;/position
+    #     :help :command
+    #     :help :command /below/;/list
+    #     :help /\@=
+    #     :help /\@= /tricky/;/position
     #     CSI ? Pm h/;/Ps = 2 0 0 4
     #     $ ls -larth
     #}}}
@@ -84,7 +84,7 @@ def doc#mapping#main(type = '') #{{{2
         return
     endif
     if VisualSelectionContainsShellCode(type)
-        exe 'Ch ' .. cmd
+        execute 'Ch ' .. cmd
         return
     endif
     cmd = VimifyCmd(cmd)
@@ -106,7 +106,7 @@ def doc#mapping#main(type = '') #{{{2
     if cmd !~ '/' || cmd =~ '^Ch '
         # Don't let a quote or a bar terminate the shell command prematurely.{{{
         #
-        #     com -bar -nargs=1 Ch Func(<q-args>)
+        #     command -bar -nargs=1 Ch Func(<q-args>)
         #     def Func(cmd: string)
         #         echo cmd
         #     enddef
@@ -118,7 +118,7 @@ def doc#mapping#main(type = '') #{{{2
         #}}}
         cmd = escape(cmd, '"|')
         try
-            exe cmd
+            execute cmd
         catch
             Catch()
             return
@@ -127,15 +127,15 @@ def doc#mapping#main(type = '') #{{{2
     endif
     # The regex is a little complex because a help topic can start with a slash.{{{
     #
-    # Example: `:h /\@>`.
+    # Example: `:help /\@>`.
     #
     # In that case, when parsing the command, we must not *stop* at this slash.
     # Same thing when parsing the offset: we must not *start* at this slash.
     #}}}
     var topic: string
     [cmd, topic] = matchlist(cmd, '\(.\{-}\)\%(\%(:h\s\+\)\@<!\(/.*\)\|$\)')[1 : 2]
-    exe cmd
-    # `exe ... cmd` could fail without raising a real Vim error, e.g. `:Man not_a_cmd`.
+    execute cmd
+    # `execute ... cmd` could fail without raising a real Vim error, e.g. `:Man not_a_cmd`.
     # In such a case, we don't want the cursor to move.
     if NotInDocumentationBuffer()
         return
@@ -152,15 +152,15 @@ def doc#mapping#main(type = '') #{{{2
         #
         #     /foo/;/bar
         #
-        # This syntax is only available in the range of an Ex command; see `:h :;`.
+        # This syntax is only available in the range of an Ex command; see `:help :;`.
         #
         # ---
         #
         # Alternatively, we could just write:
         #
-        #     exe ':' .. topic
+        #     execute ':' .. topic
         #
-        # But, in  Vim9, I  try to  avoid `:exe`  as much  as possible,  in part
+        # But, in  Vim9, I  try to  avoid `:execute`  as much  as possible,  in part
         # because it suppress the compilation of the executed command.
         #}}}
         for line_spec in topic->trim('/', 0)->split('/;/')
@@ -183,7 +183,7 @@ def GetCmd(type: string): string #{{{2
         var line: string = getline('.')
         var cmd_pat: string =
               '\C\s*\zs\%('
-            ..    ':h\|info\|man\|CSI\|OSC\|DCS\|'
+            ..    ':h\%[elp]\|info\|man\|CSI\|OSC\|DCS\|'
             # random shell command for which we want a description via `ch`
             ..    '\$'
             .. '\)\s.*'
@@ -265,10 +265,10 @@ def GetCword(): string #{{{2
         #     run-mailcap(1)
         #                ^ ^
         #}}}
-        setl iskeyword+=-,(,)
+        setlocal iskeyword+=-,(,)
         cword = expand('<cword>')
         if cword !~ '^\w\+(\d\+)$'
-            setl iskeyword-=(,)
+            setlocal iskeyword-=(,)
             cword = expand('<cword>')
         endif
     finally
@@ -283,7 +283,7 @@ def HandleSpecialFiletype(cnt: number) #{{{2
         || &filetype == 'markdown' && getcwd() == $HOME .. '/wiki/vim'
         # there may be no help tag for the current word
         try
-            exe 'help ' .. HelpTopic()
+            execute 'help ' .. HelpTopic()
         catch
             Catch()
             return
@@ -321,7 +321,7 @@ def UseManpage(name: string, cnt: number) #{{{2
 
     var cword: string = GetCword()
     if cword =~ '([0-9a-z])$'
-        exe 'Man ' .. cword
+        execute 'Man ' .. cword
         return
     endif
 
@@ -333,7 +333,7 @@ def UseManpage(name: string, cnt: number) #{{{2
     endif
     var cmd: string = printf('Man %s %s', scnt, cword)
     if scnt != ''
-        exe cmd
+        execute cmd
         return
     endif
 
@@ -344,28 +344,28 @@ def UseManpage(name: string, cnt: number) #{{{2
 
     try
         # first try to look for the current word in the bash/awk manpage
-        exe 'Man ' .. name
+        execute 'Man ' .. name
         var pat: string = '^\C\s*\zs\<' .. cword .. '\>\ze\%(\s\|$\)'
-        exe ':/' .. pat
+        execute ':/' .. pat
         setreg('/', [pat], 'c')
     catch /^Vim\%((\a\+)\)\=:E486:/
         # if you can't find it there, use it as the name of a manpage
-        q
+        quit
         # Why not trying to catch a possible error if we press `K` on some random word?{{{
         #
         # When `:Man`  is passed the  name of  a non-existing manpage,  an error
         # message is echo'ed;  but it's just a message highlighted  in red; it's
         # not a real error, so you can't catch it.
         #}}}
-        exe cmd
+        execute cmd
     catch /^Vim\%((\a\+)\)\=:E492:/
         # When can that happen?{{{
         #
         # Write this in a markdown file:
         #
-        #     blah ``:h vim9 /`=``.
-        #                   ^----^
-        #                   press `K` on any of these characters
+        #     blah ``:help vim9 /`=``.
+        #                      ^----^
+        #                      press `K` on any of these characters
         #}}}
         # What's the solution?{{{
         #
@@ -387,24 +387,24 @@ def UseKp(cnt: number) #{{{2
     var cword: string = GetCword()
     if &l:keywordprg[0] == ':'
         try
-            exe printf('%s %s %s', &l:keywordprg, cnt != 0 ? cnt : '', cword)
+            execute printf('%s %s %s', &l:keywordprg, cnt != 0 ? cnt : '', cword)
         catch /^Vim\%((\a\+)\)\=:\%(E149\|E434\):/
             Catch()
             return
         endtry
     else
-        exe printf('!%s %s %s', &l:keywordprg, cnt ? cnt : '', shellescape(cword, true))
+        execute printf('!%s %s %s', &l:keywordprg, cnt ? cnt : '', shellescape(cword, true))
     endif
 enddef
 
 def UsePydoc() #{{{2
     var cword: string = GetCword()
-    sil var doc: list<string> = systemlist('pydoc ' .. shellescape(cword))
+    silent var doc: list<string> = systemlist('pydoc ' .. shellescape(cword))
     if get(doc, 0, '') =~ '^no Python documentation found for'
         echo doc[0]
         return
     endif
-    exe 'new ' .. tempname()
+    execute 'new ' .. tempname()
     doc->setline(1)
     &l:bufhidden = 'delete'
     &l:buftype = 'nofile'
@@ -412,12 +412,12 @@ def UsePydoc() #{{{2
     &l:swapfile = false
     &l:modifiable = false
     &l:readonly = true
-    nmap <buffer><nowait> q <plug>(my_quit)
+    nmap <buffer><nowait> q <Plug>(my_quit)
 enddef
 
 def UseDevdoc() #{{{2
     var cword: string = GetCword()
-    exe 'Doc ' .. cword .. ' ' .. &filetype
+    execute 'Doc ' .. cword .. ' ' .. &filetype
 enddef
 
 def VimifyCmd(arg_cmd: string): string #{{{2
@@ -429,8 +429,8 @@ def VimifyCmd(arg_cmd: string): string #{{{2
         cmd = cmd->substitute('^', 'CtlSeqs /', '')
     elseif cmd =~ '^\$\s'
         cmd = cmd->substitute('^\$', 'Ch', '')
-    elseif cmd =~ '^:h\s'
-        # nothing to do; `:h` is already a Vim command
+    elseif cmd =~ '^:h\%[elp]\s'
+        # nothing to do; `:help` is already a Vim command
     else
         # When can this happen?{{{
         #
@@ -440,7 +440,7 @@ def VimifyCmd(arg_cmd: string): string #{{{2
         # Or when you refactor `GetCmd()` to support a new kind of documentation
         # command, but you forget to refactor this function to "vimify" it.
         #}}}
-        echo 'not a documentation command (:h, $ cmd, man, info, CSI/OSC/DCS)'
+        echo 'not a documentation command (:help, $ cmd, man, info, CSI/OSC/DCS)'
         cmd = ''
     endif
     return cmd
@@ -532,7 +532,7 @@ enddef
 
 def Error(msg: string) #{{{2
     echohl ErrorMsg
-    echom msg
+    echomsg msg
     echohl NONE
 enddef
 

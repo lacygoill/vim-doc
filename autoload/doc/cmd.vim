@@ -36,7 +36,7 @@ def doc#cmd#ch(shell_cmd: string) #{{{2
     #     ^-------^
     #     selection; the closing quote is missing
     #}}}
-    sil! systemlist('ch ' .. cmd .. ' 2>/dev/null')->setreg('o', 'c')
+    silent! systemlist('ch ' .. cmd .. ' 2>/dev/null')->setreg('o', 'c')
     echo @o
 enddef
 
@@ -44,16 +44,16 @@ def doc#cmd#ctlseqs() #{{{2
     if CtlseqsFileIsAlreadyDisplayed()
         FocusCtlseqsWindow()
     else
-        exe 'noswapfile sp +1 ' .. PATH_TO_CTLSEQS
+        execute 'noswapfile split +1 ' .. PATH_TO_CTLSEQS
     endif
     if expand('%:t') == 'ctlseqs.txt.gz'
-        nno <buffer><expr><nowait> q reg_recording() != '' ? 'q' : '<cmd>q!<cr>'
+        nnoremap <buffer><expr><nowait> q reg_recording() != '' ? 'q' : '<Cmd>quit!<CR>'
     endif
 enddef
 
 def doc#cmd#info(topic: string) #{{{2
     new
-    exe ':.!info ' .. topic
+    execute ':.!info ' .. topic
     if bufname('%') != ''
         return
     endif
@@ -65,7 +65,7 @@ def doc#cmd#info(topic: string) #{{{2
     &l:buflisted = false
     &l:swapfile = false
     &l:wrap = false
-    nno <buffer><expr><nowait> q reg_recording() != '' ? 'q' : '<cmd>q<cr>'
+    nnoremap <buffer><expr><nowait> q reg_recording() != '' ? 'q' : '<Cmd>quit<CR>'
 enddef
 
 def doc#cmd#doc(keyword = '', filetype = '') #{{{2
@@ -93,7 +93,7 @@ def doc#cmd#doc(keyword = '', filetype = '') #{{{2
         ? url .. &filetype .. ' ' .. keyword
         : url .. filetype .. ' ' .. keyword
 
-    sil system(cmd .. ' ' .. shellescape(args))
+    silent system(cmd .. ' ' .. shellescape(args))
 enddef
 #}}}1
 # Core {{{1
