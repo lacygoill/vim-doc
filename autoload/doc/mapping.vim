@@ -1,8 +1,5 @@
 vim9script noclear
 
-if exists('loaded') | finish | endif
-var loaded = true
-
 # Init {{{1
 
 import {
@@ -209,7 +206,6 @@ enddef
 
 def GetCodespan(line: string, cmd_pat: string): string #{{{2
     var cml: string = GetCml()
-    var col: number = col('.')
     var pat: string =
         # we are on a commented line
            '\%(^\s*' .. cml .. '.*\)\@<='
@@ -225,10 +221,10 @@ def GetCodespan(line: string, cmd_pat: string): string #{{{2
         ..  '\)\@<='
         .. '\%('
         # a codespan with the cursor in the middle
-        ..     '`[^`]*\%' .. col .. 'c[^`]*`'
+        ..     '`[^`]*\%.c[^`]*`'
         ..     '\|'
         # a codespan with the cursor on the opening backtick
-        ..     '\%' .. col .. 'c`[^`]*`'
+        ..     '\%.c`[^`]*`'
         ..  '\)'
 
     # extract codespan from the line
@@ -412,7 +408,7 @@ def UsePydoc() #{{{2
     &l:swapfile = false
     &l:modifiable = false
     &l:readonly = true
-    nmap <buffer><nowait> q <Plug>(my_quit)
+    nmap <buffer><nowait> q <Plug>(my-quit)
 enddef
 
 def UseDevdoc() #{{{2
@@ -463,11 +459,11 @@ def HelpTopic(): string #{{{2
     var charcol: number = charcol('.')
     var pat_pre: string
     if line[charcol - 1] =~ '\k'
-        pat_pre = '.*\ze\<\k*\%' .. col .. 'c'
+        pat_pre = '.*\ze\<\k*\%.c'
     else
-        pat_pre = '.*\%' .. col .. 'c.'
+        pat_pre = '.*\%.c.'
     endif
-    var pat_post: string = '\%' .. col .. 'c\k*\>\zs.*'
+    var pat_post: string = '\%.c\k*\>\zs.*'
     var pre: string = line->matchstr(pat_pre)
     var post: string = line->matchstr(pat_post)
 
