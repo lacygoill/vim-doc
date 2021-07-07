@@ -160,7 +160,7 @@ def doc#mapping#main(type = '') #{{{2
         # But, in  Vim9, I  try to  avoid `:execute`  as much  as possible,  in part
         # because it suppress the compilation of the executed command.
         #}}}
-        for line_spec in topic->trim('/', 0)->split('/;/')
+        for line_spec: string in topic->trim('/', 0)->split('/;/')
             search(line_spec, 'c')
         endfor
     # E486, E874, ...
